@@ -1,6 +1,7 @@
 # OBD Logger
 
-OBD Logger is an Android application that connects to a Bluetooth OBD-II device to retrieve and display various engine parameters.
+OBD Logger is an Android application that connects to a Bluetooth OBD-II device to retrieve and display various engine parameters. 
+This application is created solely for testing purposes to demonstrate how to use the `https://github.com/eltonvs/kotlin-obd-api` library.
 
 ## Features
 
