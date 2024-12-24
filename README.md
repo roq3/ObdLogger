@@ -1,4 +1,3 @@
-```markdown
 # OBD Logger
 
 OBD Logger is an Android application that connects to a Bluetooth OBD-II device to retrieve and display various engine parameters.
