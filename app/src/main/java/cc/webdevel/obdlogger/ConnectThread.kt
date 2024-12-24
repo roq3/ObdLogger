@@ -3,6 +3,7 @@ package cc.webdevel.obdlogger
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import com.github.eltonvs.obd.command.ObdResponse
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import com.github.eltonvs.obd.command.engine.*
 import kotlinx.coroutines.CoroutineScope
@@ -42,29 +43,44 @@ class ConnectThread(
                         while (isRunning) {
                             try {
                                 val response = mutableMapOf<String, Any>()
-                                // Uruchom komendy OBD i zapisz odpowiedzi w mapie
-                                response["speed"] = obdConnection.run(SpeedCommand()).value
-                                response["rpm"] = obdConnection.run(RPMCommand()).value
-                                response["massairflow"] = obdConnection.run(MassAirFlowCommand()).value
-                                response["runtime"] = obdConnection.run(RuntimeCommand()).value
-                                response["load"] = obdConnection.run(LoadCommand()).value
-                                response["absoluteload"] = obdConnection.run(AbsoluteLoadCommand()).value
-                                response["throttleposition"] = obdConnection.run(ThrottlePositionCommand()).value
-                                response["relativethrottleposition"] = obdConnection.run(RelativeThrottlePositionCommand()).value
+
+                                var speedVal = ""
+                                try { speedVal = obdConnection.run(SpeedCommand()).formattedValue } catch (e: Exception) { onError("Error executing command Speed: ${e.message}") }
+
+                                var rpmVal = ""
+                                try { rpmVal = obdConnection.run(RPMCommand()).formattedValue } catch (e: Exception) { onError("Error executing command RPM: ${e.message}") }
+
+                                var massAirFlowVal = ""
+                                try { massAirFlowVal = obdConnection.run(MassAirFlowCommand()).formattedValue } catch (e: Exception) { onError("Error executing command Mass Air Flow: ${e.message}") }
+
+                                var runtimeVal = ""
+                                try { runtimeVal = obdConnection.run(RuntimeCommand()).formattedValue } catch (e: Exception) { onError("Error executing command Runtime: ${e.message}") }
+
+                                var loadVal = ""
+                                try { loadVal = obdConnection.run(LoadCommand()).formattedValue } catch (e: Exception) { onError("Error executing command Load: ${e.message}") }
+
+                                var absoluteLoadVal = ""
+                                try { absoluteLoadVal = obdConnection.run(AbsoluteLoadCommand()).formattedValue } catch (e: Exception) { onError("Error executing command Absolute Load: ${e.message}") }
+
+                                var throttlePositionVal = ""
+                                try { throttlePositionVal = obdConnection.run(ThrottlePositionCommand()).formattedValue } catch (e: Exception) { onError("Error executing command Throttle Position: ${e.message}") }
+
+                                var relativeThrottlePositionVal = ""
+                                try { relativeThrottlePositionVal = obdConnection.run(RelativeThrottlePositionCommand()).formattedValue } catch (e: Exception) { onError("Error executing command Relative Throttle Position: ${e.message}") }
 
                                 // Utwórz pojedynczy komunikat aktualizacji statusu
                                 val statusUpdateMessage =
-                                    "Speed: ${response["speed"]}, " +
-                                            "RPM: ${response["rpm"]}, " +
-                                            "Mass Air Flow: ${response["massairflow"]}, " +
-                                            "Runtime: ${response["runtime"]}, " +
-                                            "Load: ${response["load"]}, " +
-                                            "Absolute Load: ${response["absoluteload"]}, " +
-                                            "Throttle Position: ${response["throttleposition"]}, " +
-                                            "Relative Throttle Position: ${response["relativethrottleposition"]}"
+                                    "Speed: $speedVal, " +
+                                    "RPM: $rpmVal, " +
+                                    "Mass Air Flow: $massAirFlowVal, " +
+                                    "Runtime: $runtimeVal, " +
+                                    "Load: $loadVal, " +
+                                    "Absolute Load: $absoluteLoadVal, " +
+                                    "Throttle Position: $throttlePositionVal, " +
+                                    "Relative Throttle Position: $relativeThrottlePositionVal"
 
-                                // Przetwórz odpowiedzi
                                 onStatusUpdate(statusUpdateMessage)
+
                             } catch (e: Exception) {
                                 onError("Error executing command: ${e.message}")
                             }
