@@ -12,7 +12,34 @@ class MockInputStream : InputStream() {
         "01 04" to { generateRandomHexValue(4) }, // LoadCommand
         "01 43" to { generateRandomHexValue(4) }, // AbsoluteLoadCommand
         "01 11" to { generateRandomHexValue(4) }, // ThrottlePositionCommand
-        "01 45" to { generateRandomHexValue(4) }  // RelativeThrottlePositionCommand
+        "01 45" to { generateRandomHexValue(4) }, // RelativeThrottlePositionCommand
+
+        "01 2F" to { generateRandomHexValue(2) }, // FuelLevelCommand
+        "01 5E" to { generateRandomHexValue(4) }, // FuelConsumptionRateCommand
+        "01 51" to { generateRandomHexValue(2) }, // FuelTypeCommand
+        "01 06" to { generateRandomHexValue(2) }, // FuelTrimCommand (SHORT_TERM_BANK_1)
+        "01 07" to { generateRandomHexValue(2) }, // FuelTrimCommand (SHORT_TERM_BANK_2)
+        "01 08" to { generateRandomHexValue(2) }, // FuelTrimCommand (LONG_TERM_BANK_1)
+        "01 09" to { generateRandomHexValue(2) },  // FuelTrimCommand (LONG_TERM_BANK_2)
+
+        "01 44" to { generateRandomHexValue(4) }, // CommandedEquivalenceRatioCommand
+        "01 34" to { generateRandomHexValue(4) }, // FuelAirEquivalenceRatioCommand (OXYGEN_SENSOR_1)
+        "01 35" to { generateRandomHexValue(4) }, // FuelAirEquivalenceRatioCommand (OXYGEN_SENSOR_2)
+        "01 36" to { generateRandomHexValue(4) }, // FuelAirEquivalenceRatioCommand (OXYGEN_SENSOR_3)
+        "01 37" to { generateRandomHexValue(4) }, // FuelAirEquivalenceRatioCommand (OXYGEN_SENSOR_4)
+        "01 38" to { generateRandomHexValue(4) }, // FuelAirEquivalenceRatioCommand (OXYGEN_SENSOR_5)
+        "01 39" to { generateRandomHexValue(4) }, // FuelAirEquivalenceRatioCommand (OXYGEN_SENSOR_6)
+        "01 3A" to { generateRandomHexValue(4) }, // FuelAirEquivalenceRatioCommand (OXYGEN_SENSOR_7)
+        "01 3B" to { generateRandomHexValue(4) }, // FuelAirEquivalenceRatioCommand (OXYGEN_SENSOR_8)
+
+        "01 33" to { generateRandomHexValue(4) }, // BarometricPressureCommand
+        "01 0B" to { generateRandomHexValue(4) }, // IntakeManifoldPressureCommand
+        "01 0A" to { generateRandomHexValue(4) }, // FuelPressureCommand
+        "01 23" to { generateRandomHexValue(4) }, // FuelRailPressureCommand
+        "01 22" to { generateRandomHexValue(4) }, // FuelRailGaugePressureCommand
+
+    )
+
 //        "01 0D" to "41 0D 001E>", // Response for SpeedCommand (30 Km/h)
 //        "01 0C" to "41 0C 1AF8>", // Response for RPMCommand (3000 RPM)
 //        "01 10" to "41 10 1234>", // Response for MassAirFlowCommand
@@ -21,7 +48,6 @@ class MockInputStream : InputStream() {
 //        "01 43" to "41 43 DEF0>", // Response for AbsoluteLoadCommand
 //        "01 11" to "41 11 1357>", // Response for ThrottlePositionCommand
 //        "01 45" to "41 45 2468>"  // Response for RelativeThrottlePositionCommand
-    )
 
     private var currentResponse: String? = null
     private var index = 0

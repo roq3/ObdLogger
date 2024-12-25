@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import com.github.eltonvs.obd.command.engine.*
+import com.github.eltonvs.obd.command.fuel.*
+import com.github.eltonvs.obd.command.pressure.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,7 +55,30 @@ class ConnectThread(
                                     "Load" to { LoadCommand() },
                                     "Absolute Load" to { AbsoluteLoadCommand() },
                                     "Throttle Position" to { ThrottlePositionCommand() },
-                                    "Relative Throttle Position" to { RelativeThrottlePositionCommand() }
+                                    "Relative Throttle Position" to { RelativeThrottlePositionCommand() },
+
+                                    "\nFuel Level" to { FuelLevelCommand() },
+                                    "Fuel Consumption Rate" to { FuelConsumptionRateCommand() },
+                                    "Fuel Type" to { FuelTypeCommand() },
+                                    "Fuel Trim SHORT_TERM_BANK_1" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_1) },
+                                    "Fuel Trim SHORT_TERM_BANK_2" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_2) },
+                                    "Fuel Trim LONG_TERM_BANK_1" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.LONG_TERM_BANK_1) },
+                                    "Fuel Trim LONG_TERM_BANK_2" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.LONG_TERM_BANK_2) },
+
+                                    "\nCommanded Equivalence Ratio" to { CommandedEquivalenceRatioCommand() },
+                                    "Fuel Air Equivalence Ratio OXYGEN_SENSOR_1" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_1) },
+                                    "Fuel Air Equivalence Ratio OXYGEN_SENSOR_2" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_2) },
+                                    "Fuel Air Equivalence Ratio OXYGEN_SENSOR_3" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_3) },
+                                    "Fuel Air Equivalence Ratio OXYGEN_SENSOR_5" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_5) },
+                                    "Fuel Air Equivalence Ratio OXYGEN_SENSOR_6" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_6) },
+                                    "Fuel Air Equivalence Ratio OXYGEN_SENSOR_7" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_7) },
+                                    "Fuel Air Equivalence Ratio OXYGEN_SENSOR_8" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_8) },
+
+                                    "\nBarometric Pressure" to { BarometricPressureCommand() },
+                                    "Intake Manifold Pressure" to { IntakeManifoldPressureCommand() },
+                                    "Fuel Pressure" to { FuelPressureCommand() },
+                                    "Fuel Rail Pressure" to { FuelRailPressureCommand() },
+                                    "Fuel Rail Gauge Pressure" to { FuelRailGaugePressureCommand() },
                                 )
 
                                 // Execute commands and update status
