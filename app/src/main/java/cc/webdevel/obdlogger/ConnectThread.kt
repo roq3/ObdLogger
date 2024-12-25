@@ -2,10 +2,13 @@ package cc.webdevel.obdlogger
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import com.github.eltonvs.obd.command.at.*
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import com.github.eltonvs.obd.command.engine.*
 import com.github.eltonvs.obd.command.fuel.*
 import com.github.eltonvs.obd.command.pressure.*
+import com.github.eltonvs.obd.command.temperature.*
+import com.github.eltonvs.obd.command.control.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,6 +82,26 @@ class ConnectThread(
                                     "Fuel Pressure" to { FuelPressureCommand() },
                                     "Fuel Rail Pressure" to { FuelRailPressureCommand() },
                                     "Fuel Rail Gauge Pressure" to { FuelRailGaugePressureCommand() },
+
+                                    "\nAir Intake Temperature" to { AirIntakeTemperatureCommand() },
+                                    "Ambient Air Temperature" to { AmbientAirTemperatureCommand() },
+                                    "Engine Coolant Temperature" to { EngineCoolantTemperatureCommand() },
+                                    "Oil Temperature" to { OilTemperatureCommand() },
+
+                                    "\nMIL ON/OFF" to { MILOnCommand() },
+                                    "Distance MIL ON" to { DistanceMILOnCommand() },
+                                    "Time Since MIL ON" to { TimeSinceMILOnCommand() },
+
+                                    "\nModuleVoltage" to { ModuleVoltageCommand() },
+                                    "TimingAdvance" to { TimingAdvanceCommand() },
+                                    "VIN" to { VINCommand() },
+                                    "DistanceSinceCodesCleared" to { DistanceSinceCodesClearedCommand() },
+                                    "TimeSinceCodesCleared" to { TimeSinceCodesClearedCommand() },
+
+                                    "\nDTCNumberCommand" to { DTCNumberCommand() },
+                                    "TroubleCodes" to { TroubleCodesCommand() },
+                                    "PendingTroubleCodes" to { PendingTroubleCodesCommand() },
+                                    "PermanentTroubleCodes" to { PermanentTroubleCodesCommand() }
                                 )
 
                                 // Execute commands and update status
