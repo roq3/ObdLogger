@@ -43,40 +43,32 @@ class ConnectThread(
                     CoroutineScope(Dispatchers.IO).launch {
                         while (isRunning) {
                             try {
-                                var speedVal = ""
-                                try { speedVal = obdConnection.run(SpeedCommand()).formattedValue } catch (e: Exception) { onError("Error executing command Speed: ${e.toString()}") }
 
-                                var rpmVal = ""
-                                try { rpmVal = obdConnection.run(RPMCommand()).formattedValue } catch (e: Exception) { onError("Error executing command RPM: ${e.toString()}") }
+                                // Commands to be executed
+                                val commands = mapOf(
+                                    "Speed" to { SpeedCommand() },
+                                    "RPM" to { RPMCommand() },
+                                    "Mass Air Flow" to { MassAirFlowCommand() },
+                                    "Runtime" to { RuntimeCommand() },
+                                    "Load" to { LoadCommand() },
+                                    "Absolute Load" to { AbsoluteLoadCommand() },
+                                    "Throttle Position" to { ThrottlePositionCommand() },
+                                    "Relative Throttle Position" to { RelativeThrottlePositionCommand() }
+                                )
 
-                                var massAirFlowVal = ""
-                                try { massAirFlowVal = obdConnection.run(MassAirFlowCommand()).value } catch (e: Exception) { onError("Error executing command Mass Air Flow: ${e.toString()}") }
+                                // Execute commands and update status
+                                var statusUpdateMessage = ""
 
-                                var runtimeVal = ""
-                                try { runtimeVal = obdConnection.run(RuntimeCommand()).value } catch (e: Exception) { onError("Error executing command Runtime: ${e.toString()}") }
+                                each@ for ((key, value) in commands) {
+                                    try {
+                                        val commandVal = obdConnection.run(value()).formattedValue
+                                        statusUpdateMessage += "$key: $commandVal, \n"
+                                    } catch (e: Exception) {
+                                        onError("Error executing command $key: ${e.message}")
+                                    }
+                                }
 
-                                var loadVal = ""
-                                try { loadVal = obdConnection.run(LoadCommand()).value } catch (e: Exception) { onError("Error executing command Load: ${e.toString()}") }
-
-                                var absoluteLoadVal = ""
-                                try { absoluteLoadVal = obdConnection.run(AbsoluteLoadCommand()).value } catch (e: Exception) { onError("Error executing command Absolute Load: ${e.message}") }
-
-                                var throttlePositionVal = ""
-                                try { throttlePositionVal = obdConnection.run(ThrottlePositionCommand()).value } catch (e: Exception) { onError("Error executing command Throttle Position: ${e.toString()}") }
-
-                                var relativeThrottlePositionVal = ""
-                                try { relativeThrottlePositionVal = obdConnection.run(RelativeThrottlePositionCommand()).value } catch (e: Exception) { onError("Error executing command Relative Throttle Position: ${e.toString()}") }
-
-                                val statusUpdateMessage =
-                                    "Speed: $speedVal, \n" +
-                                    "RPM: $rpmVal, \n" +
-                                    "Mass Air Flow: $massAirFlowVal, \n" +
-                                    "Runtime: $runtimeVal, \n" +
-                                    "Load: $loadVal, \n" +
-                                    "Absolute Load: $absoluteLoadVal, \n" +
-                                    "Throttle Position: $throttlePositionVal, \n" +
-                                    "Relative Throttle Position: $relativeThrottlePositionVal"
-
+                                // Update status
                                 onStatusUpdate(statusUpdateMessage)
 
                             } catch (e: Exception) {
