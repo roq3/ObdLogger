@@ -8,6 +8,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 
 @Composable
 fun MainScreen(
@@ -18,13 +20,17 @@ fun MainScreen(
     onConnectClick: () -> Unit,
     isConnected: Boolean
 ) {
+    val scrollState = rememberScrollState()
+
     Column(
-        modifier = Modifier.padding(
-            top = statusBarHeight.dp,
-            start = 16.dp,
-            end = 16.dp,
-            bottom = 16.dp
-        )
+        modifier = Modifier
+            .padding(
+                top = statusBarHeight.dp,
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 16.dp
+            )
+            .verticalScroll(scrollState)
     ) {
         Text(text = "Bluetooth Connection")
         Button(onClick = onConnectClick, modifier = Modifier.padding(top = 16.dp)) {
