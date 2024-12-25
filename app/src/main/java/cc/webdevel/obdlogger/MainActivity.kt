@@ -2,9 +2,8 @@ package cc.webdevel.obdlogger
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
-import android.content.Context
+import android.bluetooth.BluetoothManager
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -18,9 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import cc.webdevel.obdlogger.ui.theme.ObdLoggerTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.*
@@ -131,6 +127,14 @@ class MainActivity : ComponentActivity() {
     ) {
         try {
             val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
+            val mockDevice = MockBluetoothDevice()
+
+            if (pairedDevices == null || pairedDevices.isEmpty()) {
+                onStatusUpdate("Connecting to 'V-LINK'...")
+                ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError).start()
+                return
+            }
+
             if (pairedDevices.isNullOrEmpty()) {
                 onError("No paired Bluetooth devices found")
                 return
@@ -145,8 +149,7 @@ class MainActivity : ComponentActivity() {
             val device = pairedDevices.firstOrNull { it.name == "V-LINK" }
             if (device != null) {
                 onStatusUpdate("Connecting to 'V-LINK'...")
-//                ConnectThread(device, onStatusUpdate, onError).start()
-                ConnectThread(device, bluetoothAdapter!!, onStatusUpdate, onError).start()
+                ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError).start()
             } else {
                 onError("Device 'V-LINK' not found")
             }
