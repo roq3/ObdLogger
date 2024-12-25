@@ -28,6 +28,7 @@ class MockInputStream : InputStream() {
 
     fun setCommand(command: String) {
         currentResponse = commandResponses[command]?.invoke()
+//        currentResponse = commandResponses[command]
         index = 0
     }
 
