@@ -43,17 +43,16 @@ class MockInputStream : InputStream() {
         "01 05" to { generateRandomHexValue(2) }, // EngineCoolantTemperatureCommand
         "01 5C" to { generateRandomHexValue(2) }, // OilTemperatureCommand
 
-        "01 01" to { "41 01 80 00 00 00>" }, // MILOnCommand
-        "01 21" to { generateRandomHexValue(4) }, // DistanceMILOnCommand
-        "01 4D" to { generateRandomHexValue(4) }, // TimeSinceMILOnCommand
-
         "01 42" to { generateRandomHexValue(4) }, // ModuleVoltageCommand
         "01 0E" to { generateRandomHexValue(4) },  // TimingAdvanceCommand
         "09 02" to { "41 02 49 4E 20 56 49 4E 20 31 32 33 34 35 36 37 38 39>" },  // VINCommand
+
+        "01 01" to { "41 01 80 00 00 00>" }, // MILOnCommand
+        "01 21" to { generateRandomHexValue(4) }, // DistanceMILOnCommand
+        "01 4D" to { generateRandomHexValue(4) }, // TimeSinceMILOnCommand
         "01 31" to { generateRandomHexValue(4) }, // DistanceSinceCCCommand
         "01 4E" to { generateRandomHexValue(4) }, // TimeSinceCCCommand
-
-        "01 01" to { "41 01 01>" }, // DTCNumberCommand
+        "01 01" to { generateRandomHexValue(2) }, // DTCNumberCommand
         "03" to { generateRandomHexValue(2) }, // TroubleCodesCommand
         "07" to { generateRandomHexValue(2) }, // PendingTroubleCodesCommand
         "0A" to { generateRandomHexValue(2) } // PermanentTroubleCodesCommand

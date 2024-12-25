@@ -88,17 +88,16 @@ class ConnectThread(
                                     "Engine Coolant Temperature" to { EngineCoolantTemperatureCommand() },
                                     "Oil Temperature" to { OilTemperatureCommand() },
 
-                                    "\nMIL ON/OFF" to { MILOnCommand() },
-                                    "Distance MIL ON" to { DistanceMILOnCommand() },
-                                    "Time Since MIL ON" to { TimeSinceMILOnCommand() },
-
                                     "\nModuleVoltage" to { ModuleVoltageCommand() },
                                     "TimingAdvance" to { TimingAdvanceCommand() },
                                     "VIN" to { VINCommand() },
+
+                                    "\nMIL ON/OFF" to { MILOnCommand() },
+                                    "Distance MIL ON" to { DistanceMILOnCommand() },
+                                    "Time Since MIL ON" to { TimeSinceMILOnCommand() },
                                     "DistanceSinceCodesCleared" to { DistanceSinceCodesClearedCommand() },
                                     "TimeSinceCodesCleared" to { TimeSinceCodesClearedCommand() },
-
-                                    "\nDTCNumberCommand" to { DTCNumberCommand() },
+                                    "DTCNumberCommand" to { DTCNumberCommand() },
                                     "TroubleCodes" to { TroubleCodesCommand() },
                                     "PendingTroubleCodes" to { PendingTroubleCodesCommand() },
                                     "PermanentTroubleCodes" to { PermanentTroubleCodesCommand() }
