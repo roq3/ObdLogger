@@ -1,5 +1,6 @@
 package cc.webdevel.obdlogger
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import com.github.eltonvs.obd.command.engine.*
@@ -7,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import java.util.UUID
 
 class ConnectThread(
     private val device: BluetoothDeviceInterface,
@@ -14,11 +16,17 @@ class ConnectThread(
     private val onStatusUpdate: (String) -> Unit,
     private val onError: (String) -> Unit
 ) : Thread() {
+
+    companion object {
+        private val OBD_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+    }
+
     private val mmSocket: BluetoothSocketInterface? by lazy(LazyThreadSafetyMode.NONE) {
-        device.createRfcommSocketToServiceRecord(MainActivity.OBD_UUID)
+        device.createRfcommSocketToServiceRecord(OBD_UUID)
     }
     private var isRunning = true
 
+    @SuppressLint("MissingPermission")
     override fun run() {
 
         onStatusUpdate("Connected to '${device.getName()}'")
@@ -80,11 +88,6 @@ class ConnectThread(
 
                 } catch (e: Exception) {
                     onError("Could not connect to device: ${e.message}")
-                    try {
-                        socket.close()
-                    } catch (closeException: Exception) {
-                        onError("Could not close the client socket: ${closeException.message}")
-                    }
                 }
             }
         } catch (e: Exception) {

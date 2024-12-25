@@ -1,59 +1,59 @@
 package cc.webdevel.obdlogger
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothSocket
 import android.bluetooth.BluetoothManager
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import cc.webdevel.obdlogger.ui.theme.ObdLoggerTheme
-import java.io.InputStream
-import java.io.OutputStream
-import java.util.*
+import androidx.activity.result.contract.ActivityResultContracts
 
 class MainActivity : ComponentActivity() {
 
-    companion object {
-        private const val REQUEST_ENABLE_BT = 1
-        private const val TAG = "BluetoothApp"
-
-        public val OBD_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-    }
-
     private var bluetoothAdapter: BluetoothAdapter? = null
-    private var bluetoothSocket: BluetoothSocket? = null
-    private var inputStream: InputStream? = null
-    private var outputStream: OutputStream? = null
+    private var connectThread: ConnectThread? = null
+    private lateinit var enableBluetoothLauncher: ActivityResultLauncher<Intent>
 
+    @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Włącz tryb edge-to-edge i obsługuj notch
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // Pobierz BluetoothAdapter za pomocą BluetoothManager
         val bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bluetoothManager.adapter
 
+        enableBluetoothLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                // Bluetooth has been enabled, proceed with connection
+                connectToDevice(
+                    onStatusUpdate = { },
+                    onError = { },
+                    onPairedDevicesUpdate = { }
+                )
+            }
+        }
+
         setContent {
             ObdLoggerTheme {
-                val view = LocalView.current
                 val statusBarHeight = rememberStatusBarHeight()
 
                 var statusMessage by remember { mutableStateOf("Ready to connect...") }
                 var errorMessage by remember { mutableStateOf("") }
                 var pairedDevicesMessage by remember { mutableStateOf("") }
+                var isConnected by remember { mutableStateOf(false) }
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -61,26 +61,26 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     val onConnectClick = {
-
-                        if (bluetoothAdapter == null) {
-                            statusMessage = "Device doesn't support Bluetooth"
+                        if (connectThread != null) {
+                            connectThread?.cancel()
+                            connectThread = null
+                            statusMessage = "Disconnected. Ready to connect..."
+                            isConnected = false
                         } else {
-                            if (!bluetoothAdapter!!.isEnabled) {
-                                val enableBtIntent =
-                                    Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+                            if (bluetoothAdapter == null) {
+                                statusMessage = "Device doesn't support Bluetooth"
                             } else {
-                                connectToDevice(
-                                    onStatusUpdate = { message ->
-                                        statusMessage = message
-                                    },
-                                    onError = { error ->
-                                        errorMessage = error
-                                    },
-                                    onPairedDevicesUpdate = { pairedDevices ->
-                                        pairedDevicesMessage = pairedDevices
-                                    }
-                                )
+                                if (!bluetoothAdapter!!.isEnabled) {
+                                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                                    enableBluetoothLauncher.launch(enableBtIntent)
+                                } else {
+                                    connectToDevice(
+                                        onStatusUpdate = { message -> statusMessage = message },
+                                        onError = { error -> errorMessage = error },
+                                        onPairedDevicesUpdate = { pairedDevices -> pairedDevicesMessage = pairedDevices }
+                                    )
+                                    isConnected = true
+                                }
                             }
                         }
                     }
@@ -90,36 +90,15 @@ class MainActivity : ComponentActivity() {
                         statusMessage = statusMessage,
                         errorMessage = errorMessage,
                         pairedDevicesMessage = pairedDevicesMessage,
-                        onConnectClick = onConnectClick
+                        onConnectClick = onConnectClick,
+                        isConnected = isConnected
                     )
                 }
             }
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_ENABLE_BT) {
-            if (resultCode == RESULT_OK) {
-                // Bluetooth został włączony, kontynuuj połączenie
-                connectToDevice(
-                    onStatusUpdate = { message ->
-                        // Zaktualizuj UI lub obsłuż komunikat statusu
-                    },
-                    onError = { error ->
-                        // Obsłuż komunikat o błędzie
-                    },
-                    onPairedDevicesUpdate = { pairedDevices ->
-                        // Zaktualizuj UI lub obsłuż sparowane urządzenia
-                    }
-                )
-            } else {
-                // Bluetooth nie został włączony
-                // Zaktualizuj UI, aby wyświetlić komunikat o błędzie
-            }
-        }
-    }
-
+    @SuppressLint("MissingPermission")
     private fun connectToDevice(
         onStatusUpdate: (String) -> Unit,
         onError: (String) -> Unit,
@@ -129,13 +108,14 @@ class MainActivity : ComponentActivity() {
             val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
             val mockDevice = MockBluetoothDevice()
 
-            if (pairedDevices == null || pairedDevices.isEmpty()) {
-                onStatusUpdate("Connecting to 'V-LINK'...")
-                ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError).start()
+            if (pairedDevices.isNullOrEmpty()) {
+                onStatusUpdate("Connecting to 'Mockup V-LINK'...")
+                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError)
+                connectThread?.start()
                 return
             }
 
-            if (pairedDevices.isNullOrEmpty()) {
+            if (pairedDevices.isEmpty()) {
                 onError("No paired Bluetooth devices found")
                 return
             }
@@ -145,11 +125,12 @@ class MainActivity : ComponentActivity() {
             }
             onPairedDevicesUpdate(pairedDevicesMessage)
 
-            // Znajdź urządzenie o nazwie "V-LINK"
             val device = pairedDevices.firstOrNull { it.name == "V-LINK" }
             if (device != null) {
                 onStatusUpdate("Connecting to 'V-LINK'...")
-                ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError).start()
+
+                connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError)
+                connectThread?.start()
             } else {
                 onError("Device 'V-LINK' not found")
             }

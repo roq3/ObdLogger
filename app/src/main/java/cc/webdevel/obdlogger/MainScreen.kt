@@ -15,7 +15,8 @@ fun MainScreen(
     statusMessage: String,
     errorMessage: String,
     pairedDevicesMessage: String,
-    onConnectClick: () -> Unit
+    onConnectClick: () -> Unit,
+    isConnected: Boolean
 ) {
     Column(
         modifier = Modifier.padding(
@@ -27,7 +28,7 @@ fun MainScreen(
     ) {
         Text(text = "Bluetooth Connection")
         Button(onClick = onConnectClick, modifier = Modifier.padding(top = 16.dp)) {
-            Text(text = "Connect")
+            Text(text = if (isConnected) "Disconnect" else "Connect")
         }
         Text(text = statusMessage, modifier = Modifier.padding(top = 16.dp))
         if (errorMessage.isNotEmpty()) {
