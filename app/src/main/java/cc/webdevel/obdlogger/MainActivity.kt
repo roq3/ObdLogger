@@ -130,6 +130,8 @@ class MainActivity : ComponentActivity() {
                 onStatusUpdate("Connecting to 'V-LINK'...")
 
                 connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError)
+//                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError)
+                // uncommnet the line above to use the mock device
                 connectThread?.start()
             } else {
                 onError("Device 'V-LINK' not found")
