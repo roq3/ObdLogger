@@ -58,7 +58,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // Kolin OBD API
-    implementation("com.github.eltonvs:kotlin-obd-api:1.3.0")
+    implementation("com.github.roq3:kotlin-obd-api:1.3.0")
 
     testImplementation("org.mockito:mockito-core:4.0.0")
     testImplementation("org.mockito:mockito-inline:4.0.0")
