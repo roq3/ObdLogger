@@ -60,7 +60,7 @@ class ConnectThread(
                                     "Throttle Position" to { ThrottlePositionCommand() },
                                     "Relative Throttle Position" to { RelativeThrottlePositionCommand() },
 
-                                    "\nFuel Level" to { FuelLevelCommand() },
+                                    "Fuel Level" to { FuelLevelCommand() },
                                     "Fuel Consumption Rate" to { FuelConsumptionRateCommand() },
                                     "Fuel Type" to { FuelTypeCommand() },
                                     "Fuel Trim SHORT_TERM_BANK_1" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_1) },
@@ -68,7 +68,7 @@ class ConnectThread(
                                     "Fuel Trim LONG_TERM_BANK_1" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.LONG_TERM_BANK_1) },
                                     "Fuel Trim LONG_TERM_BANK_2" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.LONG_TERM_BANK_2) },
 
-                                    "\nCommanded Equivalence Ratio" to { CommandedEquivalenceRatioCommand() },
+                                    "Commanded Equivalence Ratio" to { CommandedEquivalenceRatioCommand() },
                                     "Fuel Air Equivalence Ratio OXYGEN_SENSOR_1" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_1) },
                                     "Fuel Air Equivalence Ratio OXYGEN_SENSOR_2" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_2) },
                                     "Fuel Air Equivalence Ratio OXYGEN_SENSOR_3" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_3) },
@@ -77,39 +77,41 @@ class ConnectThread(
                                     "Fuel Air Equivalence Ratio OXYGEN_SENSOR_7" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_7) },
                                     "Fuel Air Equivalence Ratio OXYGEN_SENSOR_8" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_8) },
 
-                                    "\nBarometric Pressure" to { BarometricPressureCommand() },
+                                    "Barometric Pressure" to { BarometricPressureCommand() },
                                     "Intake Manifold Pressure" to { IntakeManifoldPressureCommand() },
                                     "Fuel Pressure" to { FuelPressureCommand() },
                                     "Fuel Rail Pressure" to { FuelRailPressureCommand() },
                                     "Fuel Rail Gauge Pressure" to { FuelRailGaugePressureCommand() },
 
-                                    "\nAir Intake Temperature" to { AirIntakeTemperatureCommand() },
+                                    "Air Intake Temperature" to { AirIntakeTemperatureCommand() },
                                     "Ambient Air Temperature" to { AmbientAirTemperatureCommand() },
                                     "Engine Coolant Temperature" to { EngineCoolantTemperatureCommand() },
                                     "Oil Temperature" to { OilTemperatureCommand() },
 
-                                    "\nModuleVoltage" to { ModuleVoltageCommand() },
-                                    "TimingAdvance" to { TimingAdvanceCommand() },
+                                    "Module Voltage" to { ModuleVoltageCommand() },
+                                    "Timing Advance" to { TimingAdvanceCommand() },
                                     "VIN" to { VINCommand() },
 
-                                    "\nMIL ON/OFF" to { MILOnCommand() },
+                                    "MIL ON/OFF" to { MILOnCommand() },
                                     "Distance MIL ON" to { DistanceMILOnCommand() },
                                     "Time Since MIL ON" to { TimeSinceMILOnCommand() },
-                                    "DistanceSinceCodesCleared" to { DistanceSinceCodesClearedCommand() },
-                                    "TimeSinceCodesCleared" to { TimeSinceCodesClearedCommand() },
-                                    "DTCNumberCommand" to { DTCNumberCommand() },
-                                    "TroubleCodes" to { TroubleCodesCommand() },
-                                    "PendingTroubleCodes" to { PendingTroubleCodesCommand() },
-                                    "PermanentTroubleCodes" to { PermanentTroubleCodesCommand() }
+                                    "Distance Since Codes Cleared" to { DistanceSinceCodesClearedCommand() },
+                                    "Time Since Codes Cleared" to { TimeSinceCodesClearedCommand() },
+                                    "DTC Number" to { DTCNumberCommand() },
+                                    "Trouble Codes" to { TroubleCodesCommand() },
+                                    "Pending Trouble Codes" to { PendingTroubleCodesCommand() },
+                                    "Permanent Trouble Codes" to { PermanentTroubleCodesCommand() }
                                 )
 
                                 // Execute commands and update status
                                 var statusUpdateMessage = ""
+                                val commandResults = mutableMapOf<String, String>()
 
                                 each@ for ((key, value) in commands) {
                                     try {
                                         val commandVal = obdConnection.run(value()).formattedValue
                                         statusUpdateMessage += "$key: $commandVal, \n"
+                                        commandResults[key] = commandVal
                                     } catch (e: Exception) {
                                         onError("Error executing command $key: ${e.message}")
                                     }
@@ -117,6 +119,11 @@ class ConnectThread(
 
                                 // Update status
                                 onStatusUpdate(statusUpdateMessage)
+
+                                // Store command results
+                                // You can use commandResults map as needed, etc...
+//                                onStatusUpdate(commandResults.toString())
+//                                onStatusUpdate(commandResults["Speed"].toString())
 
                             } catch (e: Exception) {
                                 onError("Error executing command: ${e.message}")
