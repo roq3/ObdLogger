@@ -14,13 +14,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import org.json.JSONObject
 import java.util.UUID
+import java.net.HttpURLConnection
+import java.net.URL
 
 class ConnectThread(
     private val device: BluetoothDeviceInterface,
     private val bluetoothAdapter: BluetoothAdapter,
     private val onStatusUpdate: (String) -> Unit,
-    private val onError: (String) -> Unit
+    private val onError: (String) -> Unit,
+    private val uploadUrl: String,
+    private val isToggleOn: Boolean
 ) : Thread() {
 
     companion object {
@@ -118,18 +123,18 @@ class ConnectThread(
                                     }
                                 }
 
-                                // Update status
-                                onStatusUpdate(statusUpdateMessage)
-
-                                // Store command results
-                                // You can use commandResults map as needed, etc...
-//                                onStatusUpdate(commandResults.toString())
-//                                onStatusUpdate(commandResults["Speed"].toString())
+                                // Send command results to server if toggle is on
+                                if (isToggleOn) {
+                                    sendResultsToServer(uploadUrl, commandResults)
+                                } else {
+                                    onStatusUpdate(statusUpdateMessage)
+                                    onError("")
+                                }
 
                             } catch (e: Exception) {
                                 onError("Error executing command: ${e.message}")
                             }
-                            delay(1000)
+                            delay(3000)
                         }
                     }
 
@@ -139,6 +144,47 @@ class ConnectThread(
             }
         } catch (e: Exception) {
             onError("Error in connection thread: ${e.message}")
+        }
+    }
+
+    private fun sendResultsToServer(url: String, data: Map<String, String>) {
+        val maxRetries = 3
+        var attempt = 0
+        var success = false
+
+        while (attempt < maxRetries && !success) {
+            try {
+                val json = JSONObject(data).toString()
+                val urlConnection = URL(url).openConnection() as HttpURLConnection
+                urlConnection.requestMethod = "POST"
+                urlConnection.setRequestProperty("Content-Type", "application/json")
+                urlConnection.setRequestProperty("Accept", "application/json")
+                urlConnection.doOutput = true
+
+                urlConnection.outputStream.use { outputStream ->
+                    outputStream.write(json.toByteArray())
+                }
+
+                val responseCode = urlConnection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    onStatusUpdate("Data sent successfully: ${json.take(200)}...")
+                    onError("");
+                    success = true
+                } else {
+                    onError("Failed to send data: HTTP $responseCode")
+                }
+            } catch (e: Exception) {
+                onError("Error sending data: ${e.message}")
+            }
+
+            attempt++
+            if (!success) {
+                Thread.sleep(2000) // Wait for 2 seconds before retrying
+            }
+        }
+
+        if (!success) {
+            onError("Failed to send data after $maxRetries attempts")
         }
     }
 

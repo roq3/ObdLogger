@@ -56,6 +56,8 @@ class MainActivity : ComponentActivity() {
                 var errorMessage by remember { mutableStateOf("") }
                 var pairedDevicesMessage by remember { mutableStateOf("") }
                 var isConnected by remember { mutableStateOf(false) }
+                var uploadUrl by remember { mutableStateOf("http://localhost:3000") }
+                var isToggleOn by remember { mutableStateOf(false) }
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -79,7 +81,9 @@ class MainActivity : ComponentActivity() {
                                     connectToDevice(
                                         onStatusUpdate = { message -> statusMessage = message },
                                         onError = { error -> errorMessage = error },
-                                        onPairedDevicesUpdate = { pairedDevices -> pairedDevicesMessage = pairedDevices }
+                                        onPairedDevicesUpdate = { pairedDevices -> pairedDevicesMessage = pairedDevices },
+                                        uploadUrl = uploadUrl,
+                                        isToggleOn = isToggleOn
                                     )
                                     isConnected = true
                                 }
@@ -93,7 +97,10 @@ class MainActivity : ComponentActivity() {
                         errorMessage = errorMessage,
                         pairedDevicesMessage = pairedDevicesMessage,
                         onConnectClick = onConnectClick,
-                        isConnected = isConnected
+                        isConnected = isConnected,
+                        onUploadUrlChange = { url -> uploadUrl = url },
+                        onToggleChange = { isOn -> isToggleOn = isOn },
+                        uploadUrlString = uploadUrl
                     )
                 }
             }
@@ -104,7 +111,9 @@ class MainActivity : ComponentActivity() {
     private fun connectToDevice(
         onStatusUpdate: (String) -> Unit,
         onError: (String) -> Unit,
-        onPairedDevicesUpdate: (String) -> Unit
+        onPairedDevicesUpdate: (String) -> Unit,
+        uploadUrl: String = "http://localhost:3000",
+        isToggleOn: Boolean = false
     ) {
         try {
             val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
@@ -112,7 +121,7 @@ class MainActivity : ComponentActivity() {
 
             if (pairedDevices.isNullOrEmpty()) {
                 onStatusUpdate("Connecting to 'Mockup V-LINK'...")
-                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError)
+                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn)
                 connectThread?.start()
                 return
             }
@@ -131,9 +140,7 @@ class MainActivity : ComponentActivity() {
             if (device != null) {
                 onStatusUpdate("Connecting to 'V-LINK'...")
 
-                connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError)
-//                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError)
-                // uncomment the line above to use the mock device
+                connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn)
                 connectThread?.start()
             } else {
                 onError("Device 'V-LINK' not found")

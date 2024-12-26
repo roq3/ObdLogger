@@ -10,6 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 
 @Composable
 fun MainScreen(
@@ -18,9 +23,14 @@ fun MainScreen(
     errorMessage: String,
     pairedDevicesMessage: String,
     onConnectClick: () -> Unit,
-    isConnected: Boolean
+    isConnected: Boolean,
+    onUploadUrlChange: (String) -> Unit,
+    onToggleChange: (Boolean) -> Unit,
+    uploadUrlString: String
 ) {
     val scrollState = rememberScrollState()
+    var uploadUrl by remember { mutableStateOf(uploadUrlString) }
+    var isToggleOn by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -46,6 +56,38 @@ fun MainScreen(
         }
         if (pairedDevicesMessage.isNotEmpty()) {
             Text(text = pairedDevicesMessage, modifier = Modifier.padding(top = 16.dp))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Editable field for upload URL
+        Text(text = "Upload URL:")
+        BasicTextField(
+            value = uploadUrl,
+            onValueChange = {
+                uploadUrl = it
+                onUploadUrlChange(it)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Toggle switch
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "Enable Upload")
+            Switch(
+                checked = isToggleOn,
+                onCheckedChange = {
+                    isToggleOn = it
+                    onToggleChange(it)
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            )
         }
     }
 }
