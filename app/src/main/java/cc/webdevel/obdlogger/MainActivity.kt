@@ -44,7 +44,8 @@ class MainActivity : ComponentActivity() {
                     onStatusUpdate = { },
                     onError = { },
                     onPairedDevicesUpdate = { },
-                    uploadUrl   = "http://localhost:3000",
+                    uploadUrl = "http://localhost:3000",
+                    onDataUpdate = { }
                 )
             }
         }
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
                 var statusMessage by remember { mutableStateOf("Ready to connect...") }
                 var errorMessage by remember { mutableStateOf("") }
+                var obdData by remember { mutableStateOf("") }
                 var pairedDevicesMessage by remember { mutableStateOf("") }
                 var isConnected by remember { mutableStateOf(false) }
                 var uploadUrl by remember { mutableStateOf(getString(R.string.upload_url)) }
@@ -84,7 +86,8 @@ class MainActivity : ComponentActivity() {
                                         onError = { error -> errorMessage = error },
                                         onPairedDevicesUpdate = { pairedDevices -> pairedDevicesMessage = pairedDevices },
                                         uploadUrl = uploadUrl,
-                                        isToggleOn = isToggleOn
+                                        isToggleOn = isToggleOn,
+                                        onDataUpdate = { data -> obdData = data }
                                     )
                                     isConnected = true
                                 }
@@ -101,7 +104,8 @@ class MainActivity : ComponentActivity() {
                         isConnected = isConnected,
                         onUploadUrlChange = { url -> uploadUrl = url },
                         onToggleChange = { isOn -> isToggleOn = isOn },
-                        uploadUrlString = uploadUrl
+                        uploadUrlString = uploadUrl,
+                        obdData = obdData
                     )
                 }
             }
@@ -114,7 +118,8 @@ class MainActivity : ComponentActivity() {
         onError: (String) -> Unit,
         onPairedDevicesUpdate: (String) -> Unit,
         uploadUrl: String,
-        isToggleOn: Boolean = false
+        isToggleOn: Boolean = false,
+        onDataUpdate: (String) -> Unit
     ) {
         try {
             val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
@@ -122,7 +127,7 @@ class MainActivity : ComponentActivity() {
 
             if (pairedDevices.isNullOrEmpty()) {
                 onStatusUpdate("Connecting to 'Mockup V-LINK'...")
-                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity)
+                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity, onDataUpdate)
                 connectThread?.start()
                 return
             }
@@ -142,9 +147,9 @@ class MainActivity : ComponentActivity() {
                 onStatusUpdate("Connecting to 'V-LINK'...")
 
                 if (resources.getBoolean(R.bool.use_mock_device)) {
-                    connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity)
+                    connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate)
                 } else {
-                    connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity)
+                    connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate)
                 }
 
                 connectThread?.start()

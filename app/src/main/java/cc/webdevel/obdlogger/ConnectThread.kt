@@ -23,16 +23,13 @@ import java.net.URL
 import java.util.Date
 import java.util.Locale
 import android.location.Location
-import android.location.LocationManager
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.CancellationSignal
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.function.Consumer
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 
 class ConnectThread(
@@ -42,7 +39,8 @@ class ConnectThread(
     private val onError: (String) -> Unit,
     private val uploadUrl: String,
     private val isToggleOn: Boolean,
-    private val context: Context
+    private val context: Context,
+    private val onDataUpdate: (String) -> Unit
 ) : Thread() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -145,20 +143,20 @@ class ConnectThread(
                                 )
 
                                 // Execute commands and update status
-                                var statusUpdateMessage = ""
+                                var obdDataMessage = ""
                                 val commandResults = mutableMapOf<String, MutableMap<String, String>>()
 
                                 commands.forEach { (groupKey, groupCommands) ->
-                                    statusUpdateMessage += "\n$groupKey\n"
+                                    obdDataMessage += "\n$groupKey\n"
                                     groupCommands.forEach { (key, value) ->
                                         try {
 
                                             val commandVal = when (key) {
                                                 "Date", "Latitude", "Longitude" -> value().toString()
-                                                else -> obdConnection.run(value() as ObdCommand).formattedValue.toString()
+                                                else -> obdConnection.run(value() as ObdCommand).formattedValue
                                             }
 
-                                            statusUpdateMessage += "$key: $commandVal, \n"
+                                            obdDataMessage += "$key: $commandVal, \n"
                                             commandResults[groupKey] = commandResults[groupKey] ?: mutableMapOf()
                                             commandResults[groupKey]?.set(key, commandVal)
                                         } catch (e: Exception) {
@@ -170,8 +168,10 @@ class ConnectThread(
                                 // Send command results to server if toggle is on
                                 if (isToggleOn) {
                                     sendResultsToServer(uploadUrl, commandResults)
+                                    onDataUpdate(obdDataMessage)
                                 } else {
-                                    onStatusUpdate(statusUpdateMessage)
+                                    onDataUpdate(obdDataMessage)
+                                    onStatusUpdate("Data is collected but not sent to server")
                                     onError("")
                                 }
 
@@ -206,7 +206,6 @@ class ConnectThread(
                     }
                     json.put(groupKey, groupJson)
                 }
-                val jsonString = json.toString()
 
                 val urlConnection = URL(url).openConnection() as HttpURLConnection
                 urlConnection.requestMethod = "POST"
@@ -221,7 +220,7 @@ class ConnectThread(
                 val responseCode = urlConnection.responseCode
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     onStatusUpdate("Data sent successfully: ${json.toString().take(100)}...")
-                    onError("");
+                    onError("")
                     success = true
                 } else {
                     onError("Failed to send data: HTTP $responseCode")
@@ -232,7 +231,7 @@ class ConnectThread(
 
             attempt++
             if (!success) {
-                Thread.sleep(2000) // Wait for 2 seconds before retrying
+                sleep(2000) // Wait for 2 seconds before retrying
             }
         }
 
@@ -248,7 +247,7 @@ class ConnectThread(
 
                 val cancellationTokenSource = CancellationTokenSource()
                 fusedLocationClient.getCurrentLocation(
-                    com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY,
+                    Priority.PRIORITY_HIGH_ACCURACY,
                     cancellationTokenSource.token
                 ).addOnSuccessListener { location ->
                     onLocationReceived(location)

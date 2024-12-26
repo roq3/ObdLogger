@@ -21,6 +21,7 @@ fun MainScreen(
     statusBarHeight: Int,
     statusMessage: String,
     errorMessage: String,
+    obdData: String,
     pairedDevicesMessage: String,
     onConnectClick: () -> Unit,
     isConnected: Boolean,
@@ -42,20 +43,8 @@ fun MainScreen(
             )
             .verticalScroll(scrollState)
     ) {
-        Text(text = "Bluetooth Connection")
         Button(onClick = onConnectClick, modifier = Modifier.padding(top = 16.dp)) {
             Text(text = if (isConnected) "Disconnect" else "Connect")
-        }
-        Text(text = statusMessage, modifier = Modifier.padding(top = 16.dp))
-        if (errorMessage.isNotEmpty()) {
-            Text(
-                text = "Error: $errorMessage",
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 16.dp)
-            )
-        }
-        if (pairedDevicesMessage.isNotEmpty()) {
-            Text(text = pairedDevicesMessage, modifier = Modifier.padding(top = 16.dp))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -89,5 +78,18 @@ fun MainScreen(
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
+
+        Text(text = statusMessage, modifier = Modifier.padding(top = 16.dp))
+        if (errorMessage.isNotEmpty()) {
+            Text(
+                text = "Error: $errorMessage",
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+        if (pairedDevicesMessage.isNotEmpty()) {
+            Text(text = pairedDevicesMessage, modifier = Modifier.padding(top = 16.dp))
+        }
+        Text(text = obdData, modifier = Modifier.padding(top = 16.dp))
     }
 }
