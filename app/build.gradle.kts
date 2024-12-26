@@ -59,9 +59,17 @@ dependencies {
 
     // Kolin OBD API
     implementation(libs.kotlin.obd.api)
-    implementation("com.google.android.gms:play-services-location:21.0.1")
-    testImplementation("org.mockito:mockito-core:4.0.0")
-    testImplementation("org.mockito:mockito-inline:4.0.0")
-    testImplementation("org.jetbrains.kotlin:kotlin-test:1.5.31")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.5.2")
+    implementation(libs.play.services.location)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.inline)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
+
+    implementation(libs.material3)
+    implementation(libs.androidx.material3)
+    implementation(libs.ui)
+    implementation(libs.ui.tooling.preview)
+    implementation(libs.androidx.foundation)
+    implementation(libs.androidx.runtime.livedata)
+    implementation(libs.androidx.activity.compose.v140)
 }

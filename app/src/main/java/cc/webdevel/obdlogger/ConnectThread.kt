@@ -171,7 +171,7 @@ class ConnectThread(
                                     onDataUpdate(obdDataMessage)
                                 } else {
                                     onDataUpdate(obdDataMessage)
-                                    onStatusUpdate("Data is collected but not sent to server")
+                                    onStatusUpdate("Data is being prepared but not sent to server")
                                     onError("")
                                 }
 

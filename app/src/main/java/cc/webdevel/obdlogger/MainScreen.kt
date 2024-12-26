@@ -11,11 +11,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     statusBarHeight: Int,
@@ -43,31 +43,16 @@ fun MainScreen(
             )
             .verticalScroll(scrollState)
     ) {
-        Button(onClick = onConnectClick, modifier = Modifier.padding(top = 16.dp)) {
-            Text(text = if (isConnected) "Disconnect" else "Connect")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Editable field for upload URL
-        Text(text = "Upload URL:")
-        BasicTextField(
-            value = uploadUrl,
-            onValueChange = {
-                uploadUrl = it
-                onUploadUrlChange(it)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Toggle switch
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 16.dp)
         ) {
+            Button(onClick = onConnectClick) {
+                Text(text = if (isConnected) "Disconnect" else "Connect")
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
             Text(text = "Enable Upload")
             Switch(
                 checked = isToggleOn,
@@ -77,6 +62,29 @@ fun MainScreen(
                 },
                 modifier = Modifier.padding(start = 8.dp)
             )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (isToggleOn) {
+            TextField(
+                value = uploadUrl,
+                onValueChange = {
+                    uploadUrl = it
+                    onUploadUrlChange(it)
+                },
+                label = { Text("Upload URL") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         Text(text = statusMessage, modifier = Modifier.padding(top = 16.dp))
