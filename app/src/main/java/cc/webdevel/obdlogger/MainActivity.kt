@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import cc.webdevel.obdlogger.ui.theme.ObdLoggerTheme
 import androidx.activity.result.contract.ActivityResultContracts
+import cc.webdevel.obdlogger.bluetooth.RealBluetoothDevice
+import cc.webdevel.obdlogger.mock.MockBluetoothDevice
 
 class MainActivity : ComponentActivity() {
 
@@ -131,7 +133,7 @@ class MainActivity : ComponentActivity() {
 
                 connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError)
 //                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError)
-                // uncommnet the line above to use the mock device
+                // uncomment the line above to use the mock device
                 connectThread?.start()
             } else {
                 onError("Device 'V-LINK' not found")

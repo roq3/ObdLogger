@@ -2,7 +2,8 @@ package cc.webdevel.obdlogger
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import com.github.eltonvs.obd.command.at.*
+import cc.webdevel.obdlogger.bluetooth.BluetoothDeviceInterface
+import cc.webdevel.obdlogger.bluetooth.BluetoothSocketInterface
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import com.github.eltonvs.obd.command.engine.*
 import com.github.eltonvs.obd.command.fuel.*

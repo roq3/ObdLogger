@@ -1,8 +1,6 @@
-package cc.webdevel.obdlogger
+package cc.webdevel.obdlogger.bluetooth
 
 import java.util.*
-import java.io.InputStream
-import java.io.OutputStream
 
 interface BluetoothDeviceInterface {
     fun getName(): String

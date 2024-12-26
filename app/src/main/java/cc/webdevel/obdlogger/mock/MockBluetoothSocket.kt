@@ -1,5 +1,6 @@
-package cc.webdevel.obdlogger
+package cc.webdevel.obdlogger.mock
 
+import cc.webdevel.obdlogger.bluetooth.BluetoothSocketInterface
 import java.io.InputStream
 import java.io.OutputStream
 

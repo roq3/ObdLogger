@@ -1,5 +1,6 @@
-package cc.webdevel.obdlogger
+package cc.webdevel.obdlogger.bluetooth
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothSocket
 import java.io.InputStream
 import java.io.OutputStream
@@ -13,6 +14,7 @@ class RealBluetoothSocket(private val socket: BluetoothSocket) : BluetoothSocket
         return socket.outputStream
     }
 
+    @SuppressLint("MissingPermission")
     override fun connect() {
         socket.connect()
     }

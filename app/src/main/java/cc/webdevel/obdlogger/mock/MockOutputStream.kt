@@ -1,4 +1,4 @@
-package cc.webdevel.obdlogger
+package cc.webdevel.obdlogger.mock
 
 import java.io.OutputStream
 
