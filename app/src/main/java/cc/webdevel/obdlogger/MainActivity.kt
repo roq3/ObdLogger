@@ -125,14 +125,14 @@ class MainActivity : ComponentActivity() {
             val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
             val mockDevice = MockBluetoothDevice()
 
-            if (pairedDevices.isNullOrEmpty()) {
+            if (resources.getBoolean(R.bool.use_mock_device)) {
                 onStatusUpdate("Connecting to 'Mockup V-LINK'...")
                 connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity, onDataUpdate)
                 connectThread?.start()
                 return
             }
 
-            if (pairedDevices.isEmpty()) {
+            if (pairedDevices.isNullOrEmpty()) {
                 onError("No paired Bluetooth devices found")
                 return
             }
