@@ -53,7 +53,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             ObdLoggerTheme {
                 val statusBarHeight = rememberStatusBarHeight()
-
                 var statusMessage by remember { mutableStateOf("Ready to connect...") }
                 var errorMessage by remember { mutableStateOf("") }
                 var obdData by remember { mutableStateOf("") }

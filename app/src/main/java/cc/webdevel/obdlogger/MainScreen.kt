@@ -14,11 +14,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    statusBarHeight: Int,
+    statusBarHeight: Dp,
     statusMessage: String,
     errorMessage: String,
     obdData: String,
@@ -36,22 +37,22 @@ fun MainScreen(
     Column(
         modifier = Modifier
             .padding(
-                top = statusBarHeight.dp,
+                top = statusBarHeight,
                 start = 16.dp,
                 end = 16.dp,
                 bottom = 16.dp
             )
-            .verticalScroll(scrollState)
+            .fillMaxWidth()
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
         ) {
             Button(onClick = onConnectClick) {
                 Text(text = if (isConnected) "Disconnect" else "Connect")
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             Text(text = "Enable Upload")
             Switch(
@@ -63,8 +64,6 @@ fun MainScreen(
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         if (isToggleOn) {
             TextField(
@@ -83,21 +82,27 @@ fun MainScreen(
                     unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Text(text = statusMessage, modifier = Modifier.padding(top = 16.dp))
-        if (errorMessage.isNotEmpty()) {
-            Text(
-                text = "Error: $errorMessage",
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 16.dp)
-            )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+        ) {
+            Text(text = statusMessage, modifier = Modifier.padding(top = 0.dp))
+            if (errorMessage.isNotEmpty()) {
+                Text(
+                    text = "Error: $errorMessage",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+            if (pairedDevicesMessage.isNotEmpty()) {
+                Text(text = pairedDevicesMessage, modifier = Modifier.padding(top = 16.dp))
+            }
+            Text(text = obdData, modifier = Modifier.padding(top = 16.dp))
         }
-        if (pairedDevicesMessage.isNotEmpty()) {
-            Text(text = pairedDevicesMessage, modifier = Modifier.padding(top = 16.dp))
-        }
-        Text(text = obdData, modifier = Modifier.padding(top = 16.dp))
     }
 }
