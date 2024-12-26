@@ -73,6 +73,8 @@ class MainActivity : ComponentActivity() {
                             connectThread = null
                             statusMessage = "Disconnected. Ready to connect..."
                             isConnected = false
+                            obdData = ""
+                            errorMessage = ""
                         } else {
                             if (bluetoothAdapter == null) {
                                 statusMessage = "Device doesn't support Bluetooth"
