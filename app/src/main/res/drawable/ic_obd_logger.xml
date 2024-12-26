@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Tło okrągłe w kolorze przewodnim -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M54,2A52,52 0 1,0 54,106A52,52 0 1,0 54,2Z" />
+    <!-- Symbol silnika -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,48h8v-6h8l4,-4h12l4,4h8v10h6v12h-6v10h-40v-10h-6v-12h6zM44,60h20v-8h-20z" />
+    <!-- Kontrolka check engine (błyskawica) -->
+    <path
+        android:fillColor="#FFEB3B"
+        android:pathData="M46,60l6,-12h-4l4,-8h8l-4,8h4l-6,12h-8z" />
+</vector>
