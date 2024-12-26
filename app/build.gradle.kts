@@ -59,7 +59,7 @@ dependencies {
 
     // Kolin OBD API
     implementation(libs.kotlin.obd.api)
-
+    implementation("com.google.android.gms:play-services-location:21.0.1")
     testImplementation("org.mockito:mockito-core:4.0.0")
     testImplementation("org.mockito:mockito-inline:4.0.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.5.31")

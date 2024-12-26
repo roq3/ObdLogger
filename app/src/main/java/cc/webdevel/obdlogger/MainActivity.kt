@@ -43,7 +43,8 @@ class MainActivity : ComponentActivity() {
                 connectToDevice(
                     onStatusUpdate = { },
                     onError = { },
-                    onPairedDevicesUpdate = { }
+                    onPairedDevicesUpdate = { },
+                    uploadUrl   = "http://localhost:3000",
                 )
             }
         }
@@ -56,7 +57,7 @@ class MainActivity : ComponentActivity() {
                 var errorMessage by remember { mutableStateOf("") }
                 var pairedDevicesMessage by remember { mutableStateOf("") }
                 var isConnected by remember { mutableStateOf(false) }
-                var uploadUrl by remember { mutableStateOf("http://localhost:3000") }
+                var uploadUrl by remember { mutableStateOf(getString(R.string.upload_url)) }
                 var isToggleOn by remember { mutableStateOf(false) }
 
                 Surface(
@@ -112,7 +113,7 @@ class MainActivity : ComponentActivity() {
         onStatusUpdate: (String) -> Unit,
         onError: (String) -> Unit,
         onPairedDevicesUpdate: (String) -> Unit,
-        uploadUrl: String = "http://localhost:3000",
+        uploadUrl: String,
         isToggleOn: Boolean = false
     ) {
         try {
@@ -121,7 +122,7 @@ class MainActivity : ComponentActivity() {
 
             if (pairedDevices.isNullOrEmpty()) {
                 onStatusUpdate("Connecting to 'Mockup V-LINK'...")
-                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn)
+                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity)
                 connectThread?.start()
                 return
             }
@@ -140,7 +141,12 @@ class MainActivity : ComponentActivity() {
             if (device != null) {
                 onStatusUpdate("Connecting to 'V-LINK'...")
 
-                connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn)
+                if (resources.getBoolean(R.bool.use_mock_device)) {
+                    connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity)
+                } else {
+                    connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity)
+                }
+
                 connectThread?.start()
             } else {
                 onError("Device 'V-LINK' not found")
