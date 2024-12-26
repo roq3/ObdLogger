@@ -55,7 +55,14 @@ class MockInputStream : InputStream() {
         "01 01" to { generateRandomHexValue(2) }, // DTCNumberCommand
         "03" to { generateRandomHexValue(2) }, // TroubleCodesCommand
         "07" to { generateRandomHexValue(2) }, // PendingTroubleCodesCommand
-        "0A" to { generateRandomHexValue(2) } // PermanentTroubleCodesCommand
+        "0A" to { generateRandomHexValue(2) }, // PermanentTroubleCodesCommand
+
+        "AT SP 3" to { "OK" }, // Set Protocol to ISO 9141-2 BMW
+        "AT SP 4" to { "OK" }, // Set Protocol to ISO 14230-4 (KWP2000 Fast) BMW
+        "AT SP 5" to { "OK" }, // Set Protocol to ISO 14230-4 (KWP2000) BMW
+        "AT E0" to { "OK OFF" }, // Turn off echo
+        "AT E1" to { "OK ON" }, // Turn on echo
+        "AT Z" to { "ELM327 v1.5" }, // Reset
     )
 
 //        "01 0D" to "41 0D 001E>", // Response for SpeedCommand (30 Km/h)
