@@ -19,4 +19,8 @@ class MockBluetoothDevice(
     override fun createRfcommSocketToServiceRecord(uuid: UUID?): BluetoothSocketInterface {
         return MockBluetoothSocket()
     }
+
+    override fun createInsecureRfcommSocketToServiceRecord(uuid: UUID?): BluetoothSocketInterface {
+        return MockBluetoothSocket()
+    }
 }
