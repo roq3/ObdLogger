@@ -123,6 +123,9 @@ class ConnectThread(
                         }
                         is ConnectionState.Disconnected -> {
                             onError("Disconnected from '${device.getName()}'")
+                            onError("")
+                            initialConfigResults.clear()
+                            onDataUpdate("")
                         }
                         else -> {}
                     }
@@ -152,11 +155,13 @@ class ConnectThread(
 
     // Start the OBD command flow
     private fun startObdCommandFlow(socket: BluetoothSocketInterface) = flow {
-
+        if (!isRunning) return@flow
         try {
             obdConnection = ObdDeviceConnection(socket.getInputStream(), socket.getOutputStream())
 
             initialConfigCommands.forEach { it ->
+                if (!isRunning) return@flow
+
                 val result = runCommandSafely { obdConnection.run(it) }
 
                 val commandName = result.command.name
@@ -191,6 +196,7 @@ class ConnectThread(
     }.flowOn(Dispatchers.IO) // all operations happen on IO thread
 
     fun fetchData() {
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 while (isRunning) {

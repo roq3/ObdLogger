@@ -153,6 +153,7 @@ fun MainScreen(
             if (pairedDevicesMessage.isNotEmpty()) {
                 Text(text = pairedDevicesMessage, modifier = Modifier.padding(top = 16.dp))
             }
+            if (isConnected)
             Text(text = obdData, modifier = Modifier.padding(top = 16.dp))
         }
     }

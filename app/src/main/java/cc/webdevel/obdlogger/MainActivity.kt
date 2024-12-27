@@ -70,6 +70,12 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     val onConnectClick = {
+
+                        statusMessage = ""
+                        errorMessage = ""
+                        pairedDevicesMessage = ""
+                        obdData = ""
+
                         if (connectThread != null) {
                             connectThread?.cancel()
                             connectThread = null
@@ -77,6 +83,7 @@ class MainActivity : ComponentActivity() {
                             isConnected = false
                             obdData = ""
                             errorMessage = ""
+                            pairedDevicesMessage = ""
                             showFetchDataButton = false
                         } else {
                             if (bluetoothAdapter == null) {
