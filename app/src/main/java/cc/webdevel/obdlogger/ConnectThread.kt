@@ -22,14 +22,9 @@ import java.util.Locale
 import android.location.Location
 import android.content.Context
 import android.content.pm.PackageManager
-import cc.webdevel.obdlogger.command.CustomObdCommand
-import cc.webdevel.obdlogger.command.DisableAutoFormattingCommand
-import cc.webdevel.obdlogger.command.IdentifyCommand
-import cc.webdevel.obdlogger.command.IsoBaudCommand
-import cc.webdevel.obdlogger.command.ReadVoltageCommand
+import cc.webdevel.obdlogger.command.*
 import cc.webdevel.obdlogger.mock.BMWCodes
-import com.github.eltonvs.obd.command.ObdProtocols
-import com.github.eltonvs.obd.command.Switcher
+import com.github.eltonvs.obd.command.*
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -43,6 +38,7 @@ import kotlinx.coroutines.sync.withLock
 import java.io.IOException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withTimeoutOrNull
+import android.util.Log
 
 // Thread to connect to the OBD device
 class ConnectThread(
@@ -97,36 +93,41 @@ class ConnectThread(
     @SuppressLint("MissingPermission")
     override fun run() {
 
-        CoroutineScope(Dispatchers.IO).launch {
+        try {
+            CoroutineScope(Dispatchers.IO).launch {
 
-            fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+                fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
-            connectToDevice(device).collect { state ->
-                when (state) {
-                    is ConnectionState.Connecting -> {
-                        onStatusUpdate("Connecting to '${device.getName()}'")
-                    }
-                    is ConnectionState.Connected -> {
-                        onStatusUpdate("Connected to '${device.getName()}'")
-
-                        startObdCommandFlow(state.socket).collect { data ->
-                            onStatusUpdate(initialConfigResults.toString() + "\n" + data) // Display initial config results above obdData
+                connectToDevice(device).collect { state ->
+                    when (state) {
+                        is ConnectionState.Connecting -> {
+                            onStatusUpdate("Connecting to '${device.getName()}'")
                         }
+                        is ConnectionState.Connected -> {
+                            onStatusUpdate("Connected to '${device.getName()}'")
+
+                            startObdCommandFlow(state.socket).collect { data ->
+                                onStatusUpdate(initialConfigResults.toString() + "\n" + data) // Display initial config results above obdData
+                            }
+                        }
+                        is ConnectionState.ConnectionFailed -> {
+                            onError("Error: ${state.failureReason}")
+                            delay(1000)
+                            onError("")
+                            onStatusUpdate("Reconnecting to '${device.getName()}'")
+                            delay(1000)
+                            this@ConnectThread.restart() // Restart the thread
+                        }
+                        is ConnectionState.Disconnected -> {
+                            onError("Disconnected from '${device.getName()}'")
+                        }
+                        else -> {}
                     }
-                    is ConnectionState.ConnectionFailed -> {
-                        onError("Error: ${state.failureReason}")
-                        delay(1000)
-                        onError("")
-                        onStatusUpdate("Reconnecting to '${device.getName()}'")
-                        delay(1000)
-                        this@ConnectThread.restart() // Restart the thread
-                    }
-                    is ConnectionState.Disconnected -> {
-                        onError("Disconnected from '${device.getName()}'")
-                    }
-                    else -> {}
                 }
             }
+        } catch (e: Exception) {
+            Log.e("ConnectThread", "Unexpected error in run method", e)
+            onError("Unexpected error: ${e.toString()}")
         }
     }
 
@@ -139,90 +140,93 @@ class ConnectThread(
     // Start the OBD command flow
     private fun startObdCommandFlow(socket: BluetoothSocketInterface) = flow {
 
-        obdConnection = ObdDeviceConnection(socket.getInputStream(), socket.getOutputStream())
+        try {
+            obdConnection = ObdDeviceConnection(socket.getInputStream(), socket.getOutputStream())
 
-        initialConfigCommands.forEach {
-            val result = runCommandSafely { obdConnection.run(it) }
+            initialConfigCommands.forEach {
+                val result = runCommandSafely { obdConnection.run(it) }
 
-            val commandName = result.command.name
-            val commandSend = result.command.rawCommand
-            val commandFormattedValue = result.formattedValue
-            val resultRawValue = result.rawResponse.value
+                val commandName = result.command.name
+                val commandSend = result.command.rawCommand
+                val commandFormattedValue = result.formattedValue
+                val resultRawValue = result.rawResponse.value
 
-            val resultString = "$commandName ($commandSend): ($resultRawValue) $commandFormattedValue\n"
-            initialConfigResults.append(resultString) // Append result to the StringBuilder
-            emit(resultString) // Emit the result of each initial command
+                val resultString = "$commandName ($commandSend): ($resultRawValue) $commandFormattedValue\n"
+                initialConfigResults.append(resultString) // Append result to the StringBuilder
+                emit(resultString) // Emit the result of each initial command
 
-            if (it is ResetAdapterCommand) {
-                delay(500)
+                if (it is ResetAdapterCommand) {
+                    delay(500)
+                }
             }
-        }
 
-        while (isRunning) {
-            try {
-                val commandResults = mutableMapOf<String, MutableMap<String, String>>()
-                val obdDataMessage = StringBuilder()
+            while (isRunning) {
+                try {
+                    val commandResults = mutableMapOf<String, MutableMap<String, String>>()
+                    val obdDataMessage = StringBuilder()
 
-                commandList.forEach { (groupKey, groupCommands) ->
-                    obdDataMessage.append("\n$groupKey\n")
-                    val deferredResults = groupCommands.map { (key, value) ->
-                        CoroutineScope(Dispatchers.IO).async {
-                            try {
-                                val commandVal = withTimeoutOrNull(42) { // 2 seconds timeout
-                                    when (key) {
-                                        "Date", "Latitude", "Longitude" -> value().toString()
-                                        else -> {
-                                            when (val commandResult = value()) {
-                                                is ObdCommand -> runCommandSafely { obdConnection.run(commandResult).formattedValue }
-                                                else -> commandResult.toString()
+                    commandList.forEach { (groupKey, groupCommands) ->
+                        obdDataMessage.append("\n$groupKey\n")
+                        val deferredResults = groupCommands.map { (key, value) ->
+                            CoroutineScope(Dispatchers.IO).async {
+                                try {
+                                    val commandVal = withTimeoutOrNull(2000) { // 2 seconds timeout
+                                        when (key) {
+                                            "Date", "Latitude", "Longitude" -> value().toString()
+                                            else -> {
+                                                when (val commandResult = value()) {
+                                                    is ObdCommand -> runCommandSafely { obdConnection.run(commandResult).formattedValue }
+                                                    else -> commandResult.toString()
+                                                }
                                             }
                                         }
-                                    }
-                                } ?: "Timeout"
-                                key to commandVal
-                            } catch (e: Exception) {
-                                key to "null"
+                                    } ?: "Timeout"
+                                    key to commandVal
+                                } catch (e: Exception) {
+                                    key to "Error: ${e.toString()}"
+                                }
                             }
+                        }
+
+                        val results = deferredResults.map { it.await() }
+                        results.forEach { (key, commandVal) ->
+    //                        emit("$key: $commandVal")
+                            obdDataMessage.append("$key: $commandVal, \n")
+                            commandResults[groupKey] = commandResults[groupKey] ?: mutableMapOf()
+                            commandResults[groupKey]?.set(key, commandVal)
                         }
                     }
 
-                    val results = deferredResults.map { it.await() }
-                    results.forEach { (key, commandVal) ->
-//                        emit("$key: $commandVal")
-                        obdDataMessage.append("$key: $commandVal, \n")
-                        commandResults[groupKey] = commandResults[groupKey] ?: mutableMapOf()
-                        commandResults[groupKey]?.set(key, commandVal)
+                    if (isToggleOn) {
+                        sendResultsToServer(uploadUrl, commandResults)
                     }
-                }
+                    onDataUpdate(obdDataMessage.toString())
 
-                if (isToggleOn) {
-                    sendResultsToServer(uploadUrl, commandResults)
+                } catch (e: IOException) {
+                    onError("Connection lost: ${e.message}")
+                    isRunning = false
+                    break
+                } catch (e: Exception) {
+                    onError("Error: ${e.message}")
                 }
-                onDataUpdate(obdDataMessage.toString())
-
-            } catch (e: IOException) {
-                onError("Connection lost: ${e.message}")
-                isRunning = false
-                break
-            } catch (e: Exception) {
-                onError("Error: ${e.message}")
             }
+        } catch (e: Exception) {
+            Log.e("ConnectThread", "Unexpected error in startObdCommandFlow", e)
+            onError("Unexpected error: ${e.message}")
         }
-
     }.flowOn(Dispatchers.IO) // all operations happen on IO thread
 
     // List of initial configuration commands
     private val initialConfigCommands
         get() = listOf(
 //            ResetAdapterCommand(),
-            SetLineFeedCommand(Switcher.OFF),
             SetEchoCommand(Switcher.OFF),
+            SetLineFeedCommand(Switcher.OFF),
             IdentifyCommand(),
-            SetTimeoutCommand(42),
+            SetTimeoutCommand(2000),
             DisableAutoFormattingCommand(),
             SelectProtocolCommand(ObdProtocols.ISO_14230_4_KWP_FAST),
             IsoBaudCommand(10),
-//            PPSCommand(),
             ReadVoltageCommand(),
             RPMCommand()
         )
@@ -230,15 +234,15 @@ class ConnectThread(
     // List of commands to be executed
     private val commandList
         get() = mapOf(
-        "GPS" to mapOf(
-            "Latitude" to { getLocationSync()?.latitude ?: 0.0 },
-            "Longitude" to { getLocationSync()?.longitude ?: 0.0 }
-        ),
-        "Main" to mapOf(
-            "Date" to { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()) },
-        ),
-        "BMW" to BMWCodes().getCodes()
-    )
+            "GPS" to mapOf(
+                "Latitude" to { getLocationSync()?.latitude ?: 0.0 },
+                "Longitude" to { getLocationSync()?.longitude ?: 0.0 }
+            ),
+            "Main" to mapOf(
+                "Date" to { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()) },
+            ),
+            "BMW" to BMWCodes().getCodes()
+        )
 
     // Run a command safely using a mutex to prevent concurrent command execution
     private suspend fun <T> runCommandSafely(command: suspend () -> T): T {
