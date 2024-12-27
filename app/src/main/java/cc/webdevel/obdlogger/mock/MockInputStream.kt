@@ -57,6 +57,8 @@ class MockInputStream : InputStream() {
         "07" to { generateRandomHexValue(2) }, // PendingTroubleCodesCommand
         "0A" to { generateRandomHexValue(2) }, // PermanentTroubleCodesCommand
 
+        "01 00" to { "41 00 D8 3B 20 13>" }, // AvailablePIDsCommand
+
         "AT SP 0" to { "OK" }, // Set Protocol to Automatic
         "AT SP 3" to { "OK" }, // Set Protocol to ISO 9141-2 BMW
         "AT SP 4" to { "OK" }, // Set Protocol to ISO 14230-4 (KWP2000 Fast) BMW
@@ -73,7 +75,12 @@ class MockInputStream : InputStream() {
         "AT PPS" to { "PPS Summary" }, // Print a PP Summary
         "AT RV" to { "12.3V" }, // Read the voltage
         "AT ST 2a" to { "OK" }, // Set the timeout to 42
+        "AT ST d0" to { "OK" }, // Set the timeout to 2000
         "AT CAF0" to { "OK" }, // Disable automatic formatting
+        "AT H1" to { "OK" }, // Turn on headers
+        "AT H0" to { "OK" }, // Turn off headers
+        "AT SH 7E0" to { "OK" }, // Set the header to 7E0 Engine
+        "AT SH 7E1" to { "OK" }, // Set the header to 7E1 Transmission
 
         // BMW E46 318i N42 OBD-II Codes List
         "01 03" to { "41 03 01 02>" }, // Bank 1: 01, Bank 2: 02

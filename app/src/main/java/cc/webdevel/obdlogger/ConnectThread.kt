@@ -9,6 +9,7 @@ import cc.webdevel.obdlogger.bluetooth.BluetoothSocketInterface
 import com.github.eltonvs.obd.command.ObdCommand
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import com.github.eltonvs.obd.command.engine.*
+import com.github.eltonvs.obd.command.control.*
 import com.github.eltonvs.obd.command.at.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -155,7 +156,7 @@ class ConnectThread(
         try {
             obdConnection = ObdDeviceConnection(socket.getInputStream(), socket.getOutputStream())
 
-            initialConfigCommands.forEach {
+            initialConfigCommands.forEach { it ->
                 val result = runCommandSafely { obdConnection.run(it) }
 
                 val commandName = result.command.name
@@ -170,9 +171,19 @@ class ConnectThread(
                 if (it is ResetAdapterCommand) {
                     delay(500)
                 }
-            }
 
-            onFetchDataReady() // Notify that the initial commands are done
+                if (it is AvailablePIDsCommand) {
+                    val availableCommands = commandFormattedValue.split(",")
+                        .filter {
+                        it.isNotEmpty()
+                    }
+
+                    if (availableCommands.size > 1) {
+                        delay(500)
+                        onFetchDataReady() // Notify that the initial commands are done
+                    }
+                }
+            }
         } catch (e: Exception) {
             Log.e("ConnectThread", "Unexpected error in startObdCommandFlow", e)
             onError("Unexpected error: ${e.message}")
@@ -242,7 +253,10 @@ class ConnectThread(
             DisableAutoFormattingCommand(),
             SelectProtocolCommand(ObdProtocols.ISO_14230_4_KWP_FAST),
             IsoBaudCommand(10),
-            ReadVoltageCommand()
+            SetHeadersCommand(Switcher.ON),
+            SetHeaderCommand("7E0"),
+            ReadVoltageCommand(),
+            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_01_TO_20),
         )
 
     // List of commands to be executed

@@ -45,15 +45,12 @@ class ReadVoltageCommand() : ATCommand() {
     override val pid = "RV"
 }
 
-// Custom OBD Command
-class CustomObdCommand(command: String) : ObdCommand() {
+// Custom AT Command
+class CustomATCommand(override val pid: String) : ATCommand() {
 
     // Required
-    override val tag = "CUSTOM_OBD_COMMAND"
-    override val name = "Custom OBD Command"
-    override val mode = ""
-    override val pid = command
-    override val skipDigitCheck = true
+    override val tag = "CUSTOM_AT_COMMAND"
+    override val name = "Custom AT Command"
 }
 
 // Disable automatic formatting
@@ -63,4 +60,13 @@ class DisableAutoFormattingCommand() : ATCommand() {
     override val tag = "DISABLE_AUTOMATIC_FORMATTING_COMMAND"
     override val name = "Disable Automatic Formatting Command"
     override val pid = "CAF0"
+}
+
+// Turn on headers
+class SetHeaderCommand(header: String) : ATCommand() {
+
+    // Required
+    override val tag = "SET_HEADER_COMMAND"
+    override val name = "Set Header Command"
+    override val pid = "SH $header"
 }
