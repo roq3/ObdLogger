@@ -8,10 +8,6 @@ import cc.webdevel.obdlogger.bluetooth.BluetoothSocketInterface
 import com.github.eltonvs.obd.command.ObdCommand
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import com.github.eltonvs.obd.command.engine.*
-import com.github.eltonvs.obd.command.fuel.*
-import com.github.eltonvs.obd.command.pressure.*
-import com.github.eltonvs.obd.command.temperature.*
-import com.github.eltonvs.obd.command.control.*
 import com.github.eltonvs.obd.command.at.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +22,12 @@ import java.util.Locale
 import android.location.Location
 import android.content.Context
 import android.content.pm.PackageManager
+import cc.webdevel.obdlogger.command.CustomObdCommand
+import cc.webdevel.obdlogger.command.DisableAutoFormattingCommand
+import cc.webdevel.obdlogger.command.IdentifyCommand
+import cc.webdevel.obdlogger.command.IsoBaudCommand
+import cc.webdevel.obdlogger.command.ReadVoltageCommand
+import cc.webdevel.obdlogger.mock.BMWCodes
 import com.github.eltonvs.obd.command.ObdProtocols
 import com.github.eltonvs.obd.command.Switcher
 import java.util.concurrent.CountDownLatch
@@ -39,6 +41,8 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withTimeoutOrNull
 
 // Thread to connect to the OBD device
 class ConnectThread(
@@ -57,6 +61,7 @@ class ConnectThread(
     private lateinit var obdConnection: ObdDeviceConnection // OBD connection
     private val mutex = Mutex() // Mutex to prevent concurrent command execution
     private var mmSocket: BluetoothSocketInterface? = null // Bluetooth socket
+    private var initialConfigResults = StringBuilder() // To store initial config command results
 
     // UUID for OBD-II devices
     companion object {
@@ -105,7 +110,7 @@ class ConnectThread(
                         onStatusUpdate("Connected to '${device.getName()}'")
 
                         startObdCommandFlow(state.socket).collect { data ->
-                            onStatusUpdate(data) // Pass the emitted data to the callback
+                            onStatusUpdate(initialConfigResults.toString() + "\n" + data) // Display initial config results above obdData
                         }
                     }
                     is ConnectionState.ConnectionFailed -> {
@@ -144,91 +149,82 @@ class ConnectThread(
             val commandFormattedValue = result.formattedValue
             val resultRawValue = result.rawResponse.value
 
-            emit("$commandName ($commandSend): ($resultRawValue) $commandFormattedValue") // Emit the result of each initial command
+            val resultString = "$commandName ($commandSend): ($resultRawValue) $commandFormattedValue\n"
+            initialConfigResults.append(resultString) // Append result to the StringBuilder
+            emit(resultString) // Emit the result of each initial command
+
             if (it is ResetAdapterCommand) {
                 delay(500)
             }
         }
 
-        while (isRunning) { // indefinite loop to keep running commands
-
-            // Execute commands and update status
-            var obdDataMessage = ""
-            val commandResults = mutableMapOf<String, MutableMap<String, String>>()
-            var commandVal: String
-
+        while (isRunning) {
             try {
-
-                /*
-                commandList.forEach {
-                    val result = runCommandSafely { obdConnection.run(it) }
-
-                    val commandName = result.command.name
-                    val commandSend = result.command.rawCommand
-                    val commandFormattedValue = result.formattedValue
-                    val resultRawValue = result.rawResponse.value
-
-                    emit("$commandName ($commandSend): ($resultRawValue) $commandFormattedValue") // Emit the result of each command
-                }
-                */
+                val commandResults = mutableMapOf<String, MutableMap<String, String>>()
+                val obdDataMessage = StringBuilder()
 
                 commandList.forEach { (groupKey, groupCommands) ->
-                    obdDataMessage += "\n$groupKey\n"
-                    groupCommands.forEach { (key, value) ->
-                        try {
-
-                            commandVal = when (key) {
-                                "Date", "Latitude", "Longitude" -> value().toString()
-                                else -> {
-                                    when (val commandResult = value()) {
-                                        is ObdCommand -> runCommandSafely { obdConnection.run(commandResult).formattedValue }
-                                        else -> commandResult.toString()
+                    obdDataMessage.append("\n$groupKey\n")
+                    val deferredResults = groupCommands.map { (key, value) ->
+                        CoroutineScope(Dispatchers.IO).async {
+                            try {
+                                val commandVal = withTimeoutOrNull(42) { // 2 seconds timeout
+                                    when (key) {
+                                        "Date", "Latitude", "Longitude" -> value().toString()
+                                        else -> {
+                                            when (val commandResult = value()) {
+                                                is ObdCommand -> runCommandSafely { obdConnection.run(commandResult).formattedValue }
+                                                else -> commandResult.toString()
+                                            }
+                                        }
                                     }
-                                }
+                                } ?: "Timeout"
+                                key to commandVal
+                            } catch (e: Exception) {
+                                key to "null"
                             }
-
-                            obdDataMessage += "$key: $commandVal, \n"
-                            commandResults[groupKey] = commandResults[groupKey] ?: mutableMapOf()
-                            commandResults[groupKey]?.set(key, commandVal)
-
-                        } catch (e: Exception) {
-                            onError("Error executing command $key: ${e.toString()}")
                         }
+                    }
+
+                    val results = deferredResults.map { it.await() }
+                    results.forEach { (key, commandVal) ->
+//                        emit("$key: $commandVal")
+                        obdDataMessage.append("$key: $commandVal, \n")
+                        commandResults[groupKey] = commandResults[groupKey] ?: mutableMapOf()
+                        commandResults[groupKey]?.set(key, commandVal)
                     }
                 }
 
-                // Send command results to server if toggle is on
                 if (isToggleOn) {
                     sendResultsToServer(uploadUrl, commandResults)
-                    onDataUpdate(obdDataMessage)
-                } else {
-                    onDataUpdate(obdDataMessage)
-                    onStatusUpdate("Data is being prepared but not sent to server")
                 }
+                onDataUpdate(obdDataMessage.toString())
 
             } catch (e: IOException) {
                 onError("Connection lost: ${e.message}")
                 isRunning = false
                 break
             } catch (e: Exception) {
-                e.printStackTrace()
+                onError("Error: ${e.message}")
             }
-            delay(1000)
         }
+
     }.flowOn(Dispatchers.IO) // all operations happen on IO thread
 
     // List of initial configuration commands
     private val initialConfigCommands
         get() = listOf(
-            ResetAdapterCommand(),
-            SetLineFeedCommand(Switcher.ON),
+//            ResetAdapterCommand(),
+            SetLineFeedCommand(Switcher.OFF),
             SetEchoCommand(Switcher.OFF),
             IdentifyCommand(),
-            TimeoutCommand(42),
-            SelectProtocolCommand(ObdProtocols.ISO_9141_2),
+            SetTimeoutCommand(42),
+            DisableAutoFormattingCommand(),
+            SelectProtocolCommand(ObdProtocols.ISO_14230_4_KWP_FAST),
             IsoBaudCommand(10),
-            PPSCommand(),
-            ReadVoltageCommand()
+//            PPSCommand(),
+            ReadVoltageCommand(),
+            RPMCommand()
         )
 
     // List of commands to be executed
@@ -241,64 +237,7 @@ class ConnectThread(
         "Main" to mapOf(
             "Date" to { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()) },
         ),
-        "Engine" to mapOf(
-            "Speed" to { SpeedCommand() },
-            "RPM" to { RPMCommand() },
-            "Mass Air Flow" to { MassAirFlowCommand() },
-            "Runtime" to { RuntimeCommand() },
-            "Load" to { LoadCommand() },
-            "Absolute Load" to { AbsoluteLoadCommand() },
-            "Throttle Position" to { ThrottlePositionCommand() },
-            "Relative Throttle Position" to { RelativeThrottlePositionCommand() }
-        ),
-        "Fuel" to mapOf(
-            "Fuel Level" to { FuelLevelCommand() },
-            "Fuel Consumption Rate" to { FuelConsumptionRateCommand() },
-            "Fuel Type" to { FuelTypeCommand() },
-            "Fuel Trim SHORT_TERM_BANK_1" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_1) },
-            "Fuel Trim SHORT_TERM_BANK_2" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_2) },
-            "Fuel Trim LONG_TERM_BANK_1" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.LONG_TERM_BANK_1) },
-            "Fuel Trim LONG_TERM_BANK_2" to { FuelTrimCommand(FuelTrimCommand.FuelTrimBank.LONG_TERM_BANK_2) }
-        ),
-        "Equivalence Ratio" to mapOf(
-            "Commanded Equivalence Ratio" to { CommandedEquivalenceRatioCommand() },
-            "Fuel Air Equivalence Ratio OXYGEN_SENSOR_1" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_1) },
-            "Fuel Air Equivalence Ratio OXYGEN_SENSOR_2" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_2) },
-            "Fuel Air Equivalence Ratio OXYGEN_SENSOR_3" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_3) },
-            "Fuel Air Equivalence Ratio OXYGEN_SENSOR_5" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_5) },
-            "Fuel Air Equivalence Ratio OXYGEN_SENSOR_6" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_6) },
-            "Fuel Air Equivalence Ratio OXYGEN_SENSOR_7" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_7) },
-            "Fuel Air Equivalence Ratio OXYGEN_SENSOR_8" to { FuelAirEquivalenceRatioCommand(FuelAirEquivalenceRatioCommand.OxygenSensor.OXYGEN_SENSOR_8) }
-        ),
-        "Pressure" to mapOf(
-            "Barometric Pressure" to { BarometricPressureCommand() },
-            "Intake Manifold Pressure" to { IntakeManifoldPressureCommand() },
-            "Fuel Pressure" to { FuelPressureCommand() },
-            "Fuel Rail Pressure" to { FuelRailPressureCommand() },
-            "Fuel Rail Gauge Pressure" to { FuelRailGaugePressureCommand() }
-        ),
-        "Temperature" to mapOf(
-            "Air Intake Temperature" to { AirIntakeTemperatureCommand() },
-            "Ambient Air Temperature" to { AmbientAirTemperatureCommand() },
-            "Engine Coolant Temperature" to { EngineCoolantTemperatureCommand() },
-            "Oil Temperature" to { OilTemperatureCommand() }
-        ),
-        "Control" to mapOf(
-            "Module Voltage" to { ModuleVoltageCommand() },
-            "Timing Advance" to { TimingAdvanceCommand() },
-            "VIN" to { VINCommand() }
-        ),
-        "MIL" to mapOf(
-            "MIL ON/OFF" to { MILOnCommand() },
-            "Distance MIL ON" to { DistanceMILOnCommand() },
-            "Time Since MIL ON" to { TimeSinceMILOnCommand() },
-            "Distance Since Codes Cleared" to { DistanceSinceCodesClearedCommand() },
-            "Time Since Codes Cleared" to { TimeSinceCodesClearedCommand() },
-            "DTC Number" to { DTCNumberCommand() },
-            "Trouble Codes" to { TroubleCodesCommand() },
-            "Pending Trouble Codes" to { PendingTroubleCodesCommand() },
-            "Permanent Trouble Codes" to { PermanentTroubleCodesCommand() }
-        )
+        "BMW" to BMWCodes().getCodes()
     )
 
     // Run a command safely using a mutex to prevent concurrent command execution
@@ -330,7 +269,7 @@ class ConnectThread(
                     else -> CustomObdCommand(command)
                 }
                 val result = runCommandSafely { obdConnection.run(commandForCustom).formattedValue }
-                onDataUpdate("Custom Command Result: $result")
+                onStatusUpdate("Custom Command Result: $result")
             } catch (e: Exception) {
                 onError("Error executing custom command: ${e.toString()}")
             }

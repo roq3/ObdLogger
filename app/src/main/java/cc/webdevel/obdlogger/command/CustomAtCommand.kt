@@ -1,29 +1,26 @@
-package cc.webdevel.obdlogger
+package cc.webdevel.obdlogger.command
 
 import com.github.eltonvs.obd.command.ATCommand
 import com.github.eltonvs.obd.command.ObdCommand
+
+// https://www.matthewsvolvosite.com/forums/viewtopic.php?t=67588&start=14
+// https://www.sparkfun.com/datasheets/Widgets/ELM327_AT_Commands.pdf
+// https://www.letsnurture.com/blog/obd-2-bluetooth-communication-in-android-with-kotlin.html
 
 class IdentifyCommand : ATCommand() {
 
     // Required
     override val tag = "IDENTIFY_COMMAND"
     override val name = "Identify Command"
-    override val mode = "AT"
     override val pid = "I"
-    override val skipDigitCheck = true
 }
 
-// https://www.matthewsvolvosite.com/forums/viewtopic.php?t=67588&start=14
-// https://www.sparkfun.com/datasheets/Widgets/ELM327_AT_Commands.pdf
-// https://www.letsnurture.com/blog/obd-2-bluetooth-communication-in-android-with-kotlin.html
 class IsoBaudCommand(value: Int) : ATCommand() {
 
     // Required
     override val tag = "ISO_BAUD_COMMAND"
     override val name = "ISO Baud Command"
-    override val mode = "AT"
     override val pid = "IB $value"
-    override val skipDigitCheck = true
 
     // 10 => 10400
     // 96 => 9600
@@ -36,9 +33,7 @@ class PPSCommand() : ATCommand() {
     // Required
     override val tag = "PPS_COMMAND"
     override val name = "PPS Command"
-    override val mode = "AT"
     override val pid = "PPS"
-    override val skipDigitCheck = true
 }
 
 // Read Voltage
@@ -47,11 +42,10 @@ class ReadVoltageCommand() : ATCommand() {
     // Required
     override val tag = "READ_VOLTAGE_COMMAND"
     override val name = "Read Voltage Command"
-    override val mode = "AT"
     override val pid = "RV"
-    override val skipDigitCheck = true
 }
 
+// Custom OBD Command
 class CustomObdCommand(command: String) : ObdCommand() {
 
     // Required
@@ -62,13 +56,11 @@ class CustomObdCommand(command: String) : ObdCommand() {
     override val skipDigitCheck = true
 }
 
-class TimeoutCommand(timeout: Int) : ATCommand() {
+// Disable automatic formatting
+class DisableAutoFormattingCommand() : ATCommand() {
 
     // Required
-    override val tag = "TIMEOUT_COMMAND"
-    override val name = "Timeout Command"
-    override val mode = "AT"
-    override val pid = "ST ${Integer.toHexString(0xFF and timeout)}"
-    override val skipDigitCheck = true
-
+    override val tag = "DISABLE_AUTOMATIC_FORMATTING_COMMAND"
+    override val name = "Disable Automatic Formatting Command"
+    override val pid = "CAF0"
 }

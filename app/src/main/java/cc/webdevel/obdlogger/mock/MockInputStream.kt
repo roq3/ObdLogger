@@ -47,12 +47,12 @@ class MockInputStream : InputStream() {
         "01 0E" to { generateRandomHexValue(4) },  // TimingAdvanceCommand
         "09 02" to { "41 02 49 4E 20 56 49 4E 20 31 32 33 34 35 36 37 38 39>" },  // VINCommand
 
-        "01 01" to { "41 01 80 00 00 00>" }, // MILOnCommand
+//        "01 01" to { "41 01 80 00 00 00>" }, // MILOnCommand
+        "01 01" to { "41 01 80 00 00 00>" }, // MILStatusCommand
         "01 21" to { generateRandomHexValue(4) }, // DistanceMILOnCommand
         "01 4D" to { generateRandomHexValue(4) }, // TimeSinceMILOnCommand
         "01 31" to { generateRandomHexValue(4) }, // DistanceSinceCCCommand
         "01 4E" to { generateRandomHexValue(4) }, // TimeSinceCCCommand
-        "01 01" to { generateRandomHexValue(2) }, // DTCNumberCommand
         "03" to { generateRandomHexValue(2) }, // TroubleCodesCommand
         "07" to { generateRandomHexValue(2) }, // PendingTroubleCodesCommand
         "0A" to { generateRandomHexValue(2) }, // PermanentTroubleCodesCommand
@@ -73,6 +73,17 @@ class MockInputStream : InputStream() {
         "AT PPS" to { "PPS Summary" }, // Print a PP Summary
         "AT RV" to { "12.3V" }, // Read the voltage
         "AT ST 2a" to { "OK" }, // Set the timeout to 42
+        "AT CAF0" to { "OK" }, // Disable automatic formatting
+
+        // BMW E46 318i N42 OBD-II Codes List
+        "01 03" to { "41 03 01 02>" }, // Bank 1: 01, Bank 2: 02
+        "01 12" to { "41 12 01>" }, // SecondaryAirStatusCommand
+        "01 1C" to { "41 1C 01>" }, // OBDStandardsCommand
+        "01 24" to { "41 24 1234>" }, // Response for O2 S1 Equiv. Ratio and/or Current
+        "01 25" to { "41 25 5678>" }, // Response for O2 S5 Equiv. Ratio and/or Current
+        "01 14" to { "41 14 1234>" }, // Response for Bank 1, Sensor 2:Oxygen sensor & Short Term Fuel Trim
+        "01 15" to { "41 15 5678>" }, // Response for Bank 1, Sensor 3:Oxygen sensor & Short Term Fuel Trim
+        "01 13" to { "41 13 01>" }, // Response for OxygenSensorsPresentCommand
     )
 
 //        "01 0D" to "41 0D 001E>", // Response for SpeedCommand (30 Km/h)
