@@ -28,11 +28,13 @@ fun MainScreen(
     isConnected: Boolean,
     onUploadUrlChange: (String) -> Unit,
     onToggleChange: (Boolean) -> Unit,
-    uploadUrlString: String
+    uploadUrlString: String,
+    onCustomCommand: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
     var uploadUrl by remember { mutableStateOf(uploadUrlString) }
     var isToggleOn by remember { mutableStateOf(false) }
+    var customCommand by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -82,6 +84,31 @@ fun MainScreen(
                     unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Add custom command input and button in a Row
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+        ) {
+            TextField(
+                value = customCommand,
+                onValueChange = { customCommand = it },
+                label = { Text("Custom Command") },
+                placeholder = { Text("01 0D") },
+                modifier = Modifier.weight(1f),
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { onCustomCommand(customCommand) }) {
+                Text("Send Command")
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))

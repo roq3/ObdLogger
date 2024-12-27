@@ -106,7 +106,10 @@ class MainActivity : ComponentActivity() {
                         onUploadUrlChange = { url -> uploadUrl = url },
                         onToggleChange = { isOn -> isToggleOn = isOn },
                         uploadUrlString = uploadUrl,
-                        obdData = obdData
+                        obdData = obdData,
+                        onCustomCommand = { command: String ->
+                            connectThread?.sendCustomCommand(command)
+                        }
                     )
                 }
             }
@@ -127,7 +130,6 @@ class MainActivity : ComponentActivity() {
             val mockDevice = MockBluetoothDevice()
 
             if (resources.getBoolean(R.bool.use_mock_device)) {
-                onStatusUpdate("Connecting to 'Mockup V-LINK'...")
                 connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity, onDataUpdate)
                 connectThread?.start()
                 return
@@ -145,8 +147,6 @@ class MainActivity : ComponentActivity() {
 
             val device = pairedDevices.firstOrNull { it.name == "V-LINK" }
             if (device != null) {
-                onStatusUpdate("Connecting to 'V-LINK'...")
-
                 if (resources.getBoolean(R.bool.use_mock_device)) {
                     connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate)
                 } else {
