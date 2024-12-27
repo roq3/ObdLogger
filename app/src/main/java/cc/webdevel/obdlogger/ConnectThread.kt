@@ -1,5 +1,6 @@
 package cc.webdevel.obdlogger
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.icu.text.SimpleDateFormat
@@ -49,7 +50,8 @@ class ConnectThread(
     private val uploadUrl: String,
     private val isToggleOn: Boolean,
     private val context: Context,
-    private val onDataUpdate: (String) -> Unit
+    private val onDataUpdate: (String) -> Unit,
+    private val onFetchDataReady: () -> Unit,
 ) : Thread() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient // Location client
@@ -107,7 +109,7 @@ class ConnectThread(
                             onStatusUpdate("Connected to '${device.getName()}'")
 
                             startObdCommandFlow(state.socket).collect { data ->
-                                onStatusUpdate(initialConfigResults.toString() + "\n" + data) // Display initial config results above obdData
+                                onDataUpdate(initialConfigResults.toString() + "\n" + data) // Display initial config results above obdData
                             }
                         }
                         is ConnectionState.ConnectionFailed -> {
@@ -134,7 +136,17 @@ class ConnectThread(
     private fun restart() {
         isRunning = false // Stop the current thread
         cancel() // Cancel the current thread
-        ConnectThread(device, bluetoothAdapter, onStatusUpdate, onError, uploadUrl, isToggleOn, context, onDataUpdate).start() // Start a new thread instance
+        ConnectThread(
+            device,
+            bluetoothAdapter,
+            onStatusUpdate,
+            onError,
+            uploadUrl,
+            isToggleOn,
+            context,
+            onDataUpdate,
+            onFetchDataReady
+        ).start() // Start a new thread instance
     }
 
     // Start the OBD command flow
@@ -153,15 +165,24 @@ class ConnectThread(
 
                 val resultString = "$commandName ($commandSend): ($resultRawValue) $commandFormattedValue\n"
                 initialConfigResults.append(resultString) // Append result to the StringBuilder
-                emit(resultString) // Emit the result of each initial command
+                emit("") // Emit the result of each initial command
 
                 if (it is ResetAdapterCommand) {
                     delay(500)
                 }
             }
 
-            while (isRunning) {
-                try {
+            onFetchDataReady() // Notify that the initial commands are done
+        } catch (e: Exception) {
+            Log.e("ConnectThread", "Unexpected error in startObdCommandFlow", e)
+            onError("Unexpected error: ${e.message}")
+        }
+    }.flowOn(Dispatchers.IO) // all operations happen on IO thread
+
+    fun fetchData() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                while (isRunning) {
                     val commandResults = mutableMapOf<String, MutableMap<String, String>>()
                     val obdDataMessage = StringBuilder()
 
@@ -190,7 +211,6 @@ class ConnectThread(
 
                         val results = deferredResults.map { it.await() }
                         results.forEach { (key, commandVal) ->
-    //                        emit("$key: $commandVal")
                             obdDataMessage.append("$key: $commandVal, \n")
                             commandResults[groupKey] = commandResults[groupKey] ?: mutableMapOf()
                             commandResults[groupKey]?.set(key, commandVal)
@@ -201,20 +221,15 @@ class ConnectThread(
                         sendResultsToServer(uploadUrl, commandResults)
                     }
                     onDataUpdate(obdDataMessage.toString())
-
-                } catch (e: IOException) {
-                    onError("Connection lost: ${e.message}")
-                    isRunning = false
-                    break
-                } catch (e: Exception) {
-                    onError("Error: ${e.message}")
                 }
+            } catch (e: IOException) {
+                onError("Connection lost: ${e.message}")
+                isRunning = false
+            } catch (e: Exception) {
+                onError("Error: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.e("ConnectThread", "Unexpected error in startObdCommandFlow", e)
-            onError("Unexpected error: ${e.message}")
         }
-    }.flowOn(Dispatchers.IO) // all operations happen on IO thread
+    }
 
     // List of initial configuration commands
     private val initialConfigCommands
@@ -227,8 +242,7 @@ class ConnectThread(
             DisableAutoFormattingCommand(),
             SelectProtocolCommand(ObdProtocols.ISO_14230_4_KWP_FAST),
             IsoBaudCommand(10),
-            ReadVoltageCommand(),
-            RPMCommand()
+            ReadVoltageCommand()
         )
 
     // List of commands to be executed
@@ -292,8 +306,8 @@ class ConnectThread(
 
     private fun getLocation(onLocationReceived: (Location?) -> Unit) {
         try {
-            if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            if (context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
                 val cancellationTokenSource = CancellationTokenSource()
                 fusedLocationClient.getCurrentLocation(

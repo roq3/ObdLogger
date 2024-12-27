@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,12 +30,15 @@ fun MainScreen(
     onUploadUrlChange: (String) -> Unit,
     onToggleChange: (Boolean) -> Unit,
     uploadUrlString: String,
-    onCustomCommand: (String) -> Unit
+    onCustomCommand: (String) -> Unit,
+    onFetchDataClick: () -> Unit,
+    showFetchDataButton: Boolean
 ) {
     val scrollState = rememberScrollState()
     var uploadUrl by remember { mutableStateOf(uploadUrlString) }
     var isToggleOn by remember { mutableStateOf(false) }
     var customCommand by remember { mutableStateOf("") }
+    var isCustomCommandEnabled by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -54,9 +58,28 @@ fun MainScreen(
                 Text(text = if (isConnected) "Disconnect" else "Connect")
             }
 
+            Spacer(modifier = Modifier.width(8.dp))
+
+            if (isConnected && showFetchDataButton) {
+                Button(onClick = onFetchDataClick) {
+                    Text(text = "Fetch Data")
+                }
+            }
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+        ) {
+            Text(text = "Custom Command", fontSize = 16.sp)
+            Switch(
+                checked = isCustomCommandEnabled,
+                onCheckedChange = { isCustomCommandEnabled = it },
+                modifier = Modifier.padding(start = 8.dp)
+            )
+
             Spacer(modifier = Modifier.weight(1f))
 
-            Text(text = "Enable Upload")
+            Text(text = "Upload", fontSize = 16.sp)
             Switch(
                 checked = isToggleOn,
                 onCheckedChange = {
@@ -88,26 +111,27 @@ fun MainScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Add custom command input and button in a Row
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-        ) {
-            TextField(
-                value = customCommand,
-                onValueChange = { customCommand = it },
-                label = { Text("Custom Command") },
-                placeholder = { Text("01 0D") },
-                modifier = Modifier.weight(1f),
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        if (isCustomCommandEnabled) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            ) {
+                TextField(
+                    value = customCommand,
+                    onValueChange = { customCommand = it },
+                    label = { Text("Custom Command") },
+                    placeholder = { Text("01 0D") },
+                    modifier = Modifier.weight(1f),
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
                 )
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = { onCustomCommand(customCommand) }) {
-                Text("Send Command")
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = { onCustomCommand(customCommand) }) {
+                    Text("Send Command")
+                }
             }
         }
 
@@ -121,7 +145,7 @@ fun MainScreen(
             Text(text = statusMessage, modifier = Modifier.padding(top = 0.dp))
             if (errorMessage.isNotEmpty()) {
                 Text(
-                    text = "Error: $errorMessage",
+                    text = errorMessage,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 16.dp)
                 )

@@ -45,7 +45,9 @@ class MainActivity : ComponentActivity() {
                     onError = { },
                     onPairedDevicesUpdate = { },
                     uploadUrl = "http://localhost:3000",
-                    onDataUpdate = { }
+                    onDataUpdate = { },
+                    isToggleOn = false,
+                    onFetchDataReady = { }
                 )
             }
         }
@@ -60,6 +62,7 @@ class MainActivity : ComponentActivity() {
                 var isConnected by remember { mutableStateOf(false) }
                 var uploadUrl by remember { mutableStateOf(getString(R.string.upload_url)) }
                 var isToggleOn by remember { mutableStateOf(false) }
+                var showFetchDataButton by remember { mutableStateOf(false) }
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -74,6 +77,7 @@ class MainActivity : ComponentActivity() {
                             isConnected = false
                             obdData = ""
                             errorMessage = ""
+                            showFetchDataButton = false
                         } else {
                             if (bluetoothAdapter == null) {
                                 statusMessage = "Device doesn't support Bluetooth"
@@ -88,7 +92,11 @@ class MainActivity : ComponentActivity() {
                                         onPairedDevicesUpdate = { pairedDevices -> pairedDevicesMessage = pairedDevices },
                                         uploadUrl = uploadUrl,
                                         isToggleOn = isToggleOn,
-                                        onDataUpdate = { data -> obdData = data }
+                                        onDataUpdate = { data -> obdData = data },
+                                        onFetchDataReady = {
+                                            showFetchDataButton = true
+                                            statusMessage = "Connected to ECU"
+                                        }
                                     )
                                     isConnected = true
                                 }
@@ -107,9 +115,13 @@ class MainActivity : ComponentActivity() {
                         onToggleChange = { isOn -> isToggleOn = isOn },
                         uploadUrlString = uploadUrl,
                         obdData = obdData,
-                        onCustomCommand = { command: String ->
+                        onCustomCommand = { command ->
                             connectThread?.sendCustomCommand(command)
-                        }
+                        },
+                        onFetchDataClick = { ->
+                            connectThread?.fetchData()
+                        },
+                        showFetchDataButton = showFetchDataButton
                     )
                 }
             }
@@ -123,14 +135,15 @@ class MainActivity : ComponentActivity() {
         onPairedDevicesUpdate: (String) -> Unit,
         uploadUrl: String,
         isToggleOn: Boolean = false,
-        onDataUpdate: (String) -> Unit
+        onDataUpdate: (String) -> Unit,
+        onFetchDataReady: () -> Unit
     ) {
         try {
             val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
             val mockDevice = MockBluetoothDevice()
 
             if (resources.getBoolean(R.bool.use_mock_device)) {
-                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity, onDataUpdate)
+                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity, onDataUpdate, onFetchDataReady)
                 connectThread?.start()
                 return
             }
@@ -148,9 +161,9 @@ class MainActivity : ComponentActivity() {
             val device = pairedDevices.firstOrNull { it.name == "V-LINK" }
             if (device != null) {
                 if (resources.getBoolean(R.bool.use_mock_device)) {
-                    connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate)
+                    connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate, onFetchDataReady)
                 } else {
-                    connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate)
+                    connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate, onFetchDataReady)
                 }
 
                 connectThread?.start()
