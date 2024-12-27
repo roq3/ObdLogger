@@ -6,7 +6,7 @@ import kotlin.random.Random
 class MockInputStream : InputStream() {
     private val commandResponses = mapOf(
         "01 0D" to { generateRandomHexValue(2) }, // SpeedCommand
-        "01 0C" to { generateRandomHexValue(4) }, // RPMCommand
+        "01 0C" to { generateRandomHexValue(2) }, // RPMCommand (0 RPM)
         "01 10" to { generateRandomHexValue(4) }, // MassAirFlowCommand
         "01 0F" to { generateRandomHexValue(4) }, // RuntimeCommand
         "01 04" to { generateRandomHexValue(4) }, // LoadCommand
@@ -57,12 +57,22 @@ class MockInputStream : InputStream() {
         "07" to { generateRandomHexValue(2) }, // PendingTroubleCodesCommand
         "0A" to { generateRandomHexValue(2) }, // PermanentTroubleCodesCommand
 
+        "AT SP 0" to { "OK" }, // Set Protocol to Automatic
         "AT SP 3" to { "OK" }, // Set Protocol to ISO 9141-2 BMW
         "AT SP 4" to { "OK" }, // Set Protocol to ISO 14230-4 (KWP2000 Fast) BMW
         "AT SP 5" to { "OK" }, // Set Protocol to ISO 14230-4 (KWP2000) BMW
-        "AT E0" to { "OK OFF" }, // Turn off echo
-        "AT E1" to { "OK ON" }, // Turn on echo
-        "AT Z" to { "ELM327 v1.5" }, // Reset
+        "AT E0" to { "OK" }, // Turn off echo
+        "AT E1" to { "OK" }, // Turn on echo
+        "AT Z" to { "ELM327 v2.1" }, // Reset
+        "AT I" to { "ELM327 v2.1" }, // Print the version ID
+        "AT L1" to { "Line Feed ON" }, // Turn on line feed
+        "AT L0" to { "Line Feed OFF" }, // Turn off line feed
+        "AT IB 10" to { "10400" }, // Set ISO Baud rate to 10400
+        "AT IB 96" to { "9600" }, // Set ISO Baud rate to 9600
+        "AT IB 48" to { "4800" }, // Set ISO Baud rate to 4800
+        "AT PPS" to { "PPS Summary" }, // Print a PP Summary
+        "AT RV" to { "12.3V" }, // Read the voltage
+        "AT ST 2a" to { "OK" }, // Set the timeout to 42
     )
 
 //        "01 0D" to "41 0D 001E>", // Response for SpeedCommand (30 Km/h)

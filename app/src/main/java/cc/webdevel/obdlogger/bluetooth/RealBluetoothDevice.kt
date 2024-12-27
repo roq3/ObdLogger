@@ -18,4 +18,9 @@ class RealBluetoothDevice(private val device: BluetoothDevice) : BluetoothDevice
     override fun createRfcommSocketToServiceRecord(uuid: UUID?): BluetoothSocketInterface {
         return RealBluetoothSocket(device.createRfcommSocketToServiceRecord(uuid))
     }
+
+    @SuppressLint("MissingPermission")
+    override fun createInsecureRfcommSocketToServiceRecord(uuid: UUID?): BluetoothSocketInterface {
+        return RealBluetoothSocket(device.createInsecureRfcommSocketToServiceRecord(uuid))
+    }
 }
