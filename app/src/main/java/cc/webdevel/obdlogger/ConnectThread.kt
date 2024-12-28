@@ -149,7 +149,7 @@ class ConnectThread(
             }
         } catch (e: Exception) {
             Log.e("ConnectThread", "Unexpected error in run method", e)
-            onError("Unexpected error: ${e.toString()}")
+            onError("Unexpected error: $e")
         }
     }
 
@@ -252,13 +252,13 @@ class ConnectThread(
                                     } ?: "Timeout"
                                     key to commandVal
                                 } catch (e: Exception) {
-                                    key to "Error: ${e.toString()}"
+                                    key to "Error: $e"
                                 }
                             }
                         }
 
                         val results = deferredResults.map { it.await() }
-                        results.forEachIndexed() { index, (key, commandVal) ->
+                        results.forEachIndexed { index, (key, commandVal) ->
 
                             // if not last command, add a comma
                             if(index < results.size - 1) {
@@ -268,7 +268,7 @@ class ConnectThread(
                             }
 
                             commandResults[groupKey] = commandResults[groupKey] ?: mutableMapOf()
-                            commandResults[groupKey]?.set(key, commandVal)
+                            commandResults[groupKey]?.set(key!!, commandVal)
                         }
                     }
 
@@ -351,7 +351,7 @@ class ConnectThread(
                 val result = runCommandSafely { obdConnection.run(commandForCustom).formattedValue }
                 onStatusUpdate("Custom Command Result: $result")
             } catch (e: Exception) {
-                onError("Error executing custom command: ${e.toString()}")
+                onError("Error executing custom command: $e")
             }
         }
     }

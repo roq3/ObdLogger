@@ -190,7 +190,7 @@ class MainActivity : ComponentActivity() {
     }
 
     // Connect to the device
-    fun connectToThread(
+    private fun connectToThread(
         device: BluetoothDeviceInterface,
         bluetoothAdapter: BluetoothAdapter,
         onStatusUpdate: (String) -> Unit,
