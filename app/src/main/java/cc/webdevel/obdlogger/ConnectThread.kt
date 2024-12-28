@@ -41,6 +41,8 @@ import java.io.IOException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withTimeoutOrNull
 import android.util.Log
+import kotlinx.coroutines.Job
+import kotlin.coroutines.cancellation.CancellationException
 
 // Thread to connect to the OBD device
 class ConnectThread(
@@ -48,8 +50,8 @@ class ConnectThread(
     private val bluetoothAdapter: BluetoothAdapter,
     private val onStatusUpdate: (String) -> Unit,
     private val onError: (String) -> Unit,
-    private val uploadUrl: String,
-    private val isToggleOn: Boolean,
+    private var uploadUrl: String,
+    private var isToggleOn: Boolean,
     private val context: Context,
     private val onDataUpdate: (String) -> Unit,
     private val onFetchDataReady: () -> Unit,
@@ -61,6 +63,7 @@ class ConnectThread(
     private val mutex = Mutex() // Mutex to prevent concurrent command execution
     private var mmSocket: BluetoothSocketInterface? = null // Bluetooth socket
     private var initialConfigResults = StringBuilder() // To store initial config command results
+    private var fetchDataJob: Job? = null
 
     // UUID for OBD-II devices
     companion object {
@@ -75,6 +78,14 @@ class ConnectThread(
         data object Disconnected: ConnectionState()
     }
 
+    fun updateToggleState(isOn: Boolean) {
+        isToggleOn = isOn
+    }
+
+    fun updateUploadUrl(newUrl: String) {
+        uploadUrl = newUrl
+    }
+
     @SuppressLint("MissingPermission")
     // Connect to the device
     fun connectToDevice(bluetoothDevice: BluetoothDeviceInterface) = flow {
@@ -85,7 +96,6 @@ class ConnectThread(
                 it.connect()
                 mmSocket = it
             }
-            var connectedDevice = bluetoothDevice
             emit(ConnectionState.Connected(socket))
         } catch (e: Exception) {
             emit(ConnectionState.ConnectionFailed(e.message ?: "Failed to connect"))
@@ -104,7 +114,8 @@ class ConnectThread(
                 connectToDevice(device).collect { state ->
                     when (state) {
                         is ConnectionState.Connecting -> {
-                            onStatusUpdate("Connecting to '${device.getName()}'")
+                            onStatusUpdate("Connecting to '${state.bluetoothDevice.getName()}'")
+                            delay(1000)
                         }
                         is ConnectionState.Connected -> {
                             onStatusUpdate("Connected to '${device.getName()}'")
@@ -133,7 +144,6 @@ class ConnectThread(
                             initialConfigResults.clear()
                             onDataUpdate("")
                         }
-                        else -> {}
                     }
                 }
             }
@@ -208,20 +218,21 @@ class ConnectThread(
     }.flowOn(Dispatchers.IO) // all operations happen on IO thread
 
     fun fetchData() {
+        fetchDataJob?.cancel() // Cancel the previous job if it is still active
 
-        CoroutineScope(Dispatchers.IO).launch {
+        fetchDataJob = CoroutineScope(Dispatchers.IO).launch {
             try {
                 while (isRunning) {
+                    onStatusUpdate("Fetching data...")
                     val commandResults = mutableMapOf<String, MutableMap<String, String>>()
                     val obdDataMessage = StringBuilder()
 
                     commandList.forEach { (groupKey, groupCommands) ->
 
-                        var groupKeyName = groupKey
-                        if(groupKey == "GPS") {
-                            groupKeyName = "Location:\n"
+                        val groupKeyName: String = if(groupKey == "GPS") {
+                            "Location:\n"
                         } else {
-                            groupKeyName = "\n\n$groupKey:\n"
+                            "\n\n$groupKey:\n"
                         }
                         obdDataMessage.append(groupKeyName)
 
@@ -271,6 +282,8 @@ class ConnectThread(
             } catch (e: IOException) {
                 onError("Connection lost: ${e.message}")
                 isRunning = false
+            } catch (e: CancellationException) {
+                onStatusUpdate("${e.message}")
             } catch (e: Exception) {
                 onError("Error: ${e.message}")
             }
@@ -393,7 +406,7 @@ class ConnectThread(
     }
 
     private fun sendResultsToServer(url: String, data: MutableMap<String, MutableMap<String, String>>) {
-        val maxRetries = 3
+        val maxRetries = 1
         var attempt = 0
         var success = false
 
@@ -420,7 +433,7 @@ class ConnectThread(
 
                 val responseCode = urlConnection.responseCode
                 if (responseCode == HttpURLConnection.HTTP_OK) {
-                    onStatusUpdate("Data sent successfully: ${json.toString().take(100)}...")
+                    onStatusUpdate("Data sent successfully: ${json.toString().take(20)}...")
                     onError("")
                     success = true
                 } else {

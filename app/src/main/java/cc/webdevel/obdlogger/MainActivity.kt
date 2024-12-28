@@ -18,9 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import cc.webdevel.obdlogger.ui.theme.ObdLoggerTheme
 import androidx.activity.result.contract.ActivityResultContracts
-import cc.webdevel.obdlogger.bluetooth.RealBluetoothDevice
+import cc.webdevel.obdlogger.bluetooth.*
 import cc.webdevel.obdlogger.mock.MockBluetoothDevice
-import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
@@ -119,14 +118,20 @@ class MainActivity : ComponentActivity() {
                         pairedDevicesMessage = pairedDevicesMessage,
                         onConnectClick = onConnectClick,
                         isConnected = isConnected,
-                        onUploadUrlChange = { url -> uploadUrl = url },
-                        onToggleChange = { isOn -> isToggleOn = isOn },
+                        onUploadUrlChange = { url ->
+                            uploadUrl = url
+                            connectThread?.updateUploadUrl(url)
+                        },
+                        onToggleChange = { isOn ->
+                            isToggleOn = isOn
+                            connectThread?.updateToggleState(isOn)
+                        },
                         uploadUrlString = uploadUrl,
                         obdData = obdData,
                         onCustomCommand = { command ->
                             connectThread?.sendCustomCommand(command)
                         },
-                        onFetchDataClick = { ->
+                        onFetchDataClick = {
                             connectThread?.fetchData()
                         },
                         showFetchDataButton = showFetchDataButton
@@ -147,11 +152,9 @@ class MainActivity : ComponentActivity() {
         onFetchDataReady: () -> Unit
     ) {
         try {
-            val mockDevice = MockBluetoothDevice()
 
             if (resources.getBoolean(R.bool.use_mock_device)) {
-                connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, this@MainActivity, onDataUpdate, onFetchDataReady)
-                connectThread?.start()
+                connectToThread(MockBluetoothDevice(), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, onDataUpdate, onFetchDataReady)
                 return
             }
 
@@ -168,14 +171,46 @@ class MainActivity : ComponentActivity() {
             onPairedDevicesUpdate(pairedDevicesMessage)
 
             val device = pairedDevices.firstOrNull { it.name == "V-LINK" }
-            if (device != null) {
-                connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate, onFetchDataReady)
-                connectThread?.start()
-            } else {
-                onError("Device 'V-LINK' not found")
-            }
+
+            device?.let {
+                connectToThread(
+                    RealBluetoothDevice(it),
+                    bluetoothAdapter!!,
+                    onStatusUpdate,
+                    onError,
+                    uploadUrl,
+                    isToggleOn,
+                    onDataUpdate,
+                    onFetchDataReady)
+            } ?: onError("Device 'V-LINK' not found")
+
         } catch (e: Exception) {
             onError("Error while connecting to device: ${e.message}")
         }
+    }
+
+    // Connect to the device
+    fun connectToThread(
+        device: BluetoothDeviceInterface,
+        bluetoothAdapter: BluetoothAdapter,
+        onStatusUpdate: (String) -> Unit,
+        onError: (String) -> Unit,
+        uploadUrl: String,
+        isToggleOn: Boolean,
+        onDataUpdate: (String) -> Unit,
+        onFetchDataReady: () -> Unit) {
+
+        connectThread = ConnectThread(
+            device,
+            bluetoothAdapter,
+            onStatusUpdate,
+            onError,
+            uploadUrl,
+            isToggleOn,
+            this@MainActivity,
+            onDataUpdate,
+            onFetchDataReady
+        )
+        connectThread?.start()
     }
 }
