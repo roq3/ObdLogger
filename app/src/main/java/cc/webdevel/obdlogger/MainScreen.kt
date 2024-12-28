@@ -1,5 +1,6 @@
 package cc.webdevel.obdlogger
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -11,11 +12,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import cc.webdevel.obdlogger.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +58,9 @@ fun MainScreen(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
         ) {
             Button(onClick = onConnectClick) {
                 Text(text = if (isConnected) "Disconnect" else "Connect")
@@ -68,7 +76,9 @@ fun MainScreen(
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
         ) {
             Text(text = "Custom Command", fontSize = 16.sp)
             Switch(
@@ -114,7 +124,9 @@ fun MainScreen(
         if (isCustomCommandEnabled) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             ) {
                 TextField(
                     value = customCommand,
@@ -142,19 +154,60 @@ fun MainScreen(
                 .fillMaxWidth()
                 .verticalScroll(scrollState)
         ) {
-            Text(text = statusMessage, modifier = Modifier.padding(top = 0.dp))
+            if (statusMessage.isNotEmpty()) {
+                Text(
+                    text = "Status:\n$statusMessage",
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(top = 0.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(AlertSuccess.copy(alpha = 1f))
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxWidth()
+
+                )
+            }
             if (errorMessage.isNotEmpty()) {
                 Text(
                     text = errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 16.dp)
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(top = 0.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(AlertError.copy(alpha = 1f))
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxWidth()
+
                 )
             }
             if (pairedDevicesMessage.isNotEmpty()) {
-                Text(text = pairedDevicesMessage, modifier = Modifier.padding(top = 16.dp))
+                Text(
+                    text = pairedDevicesMessage,
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(AlertSuccess.copy(alpha = 1f))
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxWidth()
+                    ,
+                )
             }
-            if (isConnected)
-            Text(text = obdData, modifier = Modifier.padding(top = 16.dp))
+            if (isConnected && obdData.isNotEmpty()) {
+                Text(
+                    text = obdData,
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
+                )
+            }
         }
     }
 }

@@ -18,7 +18,7 @@ private val DarkColors = darkColorScheme(
     background = Color(0xFF121212),
     onBackground = Color.White,
     surface = Color(0xFF121212),
-    onSurface = Color.White,
+    onSurface = Color.White
 )
 
 @Composable

@@ -20,6 +20,7 @@ import cc.webdevel.obdlogger.ui.theme.ObdLoggerTheme
 import androidx.activity.result.contract.ActivityResultContracts
 import cc.webdevel.obdlogger.bluetooth.RealBluetoothDevice
 import cc.webdevel.obdlogger.mock.MockBluetoothDevice
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
@@ -146,7 +147,6 @@ class MainActivity : ComponentActivity() {
         onFetchDataReady: () -> Unit
     ) {
         try {
-            val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
             val mockDevice = MockBluetoothDevice()
 
             if (resources.getBoolean(R.bool.use_mock_device)) {
@@ -154,6 +154,8 @@ class MainActivity : ComponentActivity() {
                 connectThread?.start()
                 return
             }
+
+            val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
 
             if (pairedDevices.isNullOrEmpty()) {
                 onError("No paired Bluetooth devices found")
@@ -167,12 +169,7 @@ class MainActivity : ComponentActivity() {
 
             val device = pairedDevices.firstOrNull { it.name == "V-LINK" }
             if (device != null) {
-                if (resources.getBoolean(R.bool.use_mock_device)) {
-                    connectThread = ConnectThread(mockDevice, bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate, onFetchDataReady)
-                } else {
-                    connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate, onFetchDataReady)
-                }
-
+                connectThread = ConnectThread(RealBluetoothDevice(device), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn,this@MainActivity, onDataUpdate, onFetchDataReady)
                 connectThread?.start()
             } else {
                 onError("Device 'V-LINK' not found")

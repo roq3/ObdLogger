@@ -110,7 +110,13 @@ class ConnectThread(
                             onStatusUpdate("Connected to '${device.getName()}'")
 
                             startObdCommandFlow(state.socket).collect { data ->
-                                onDataUpdate(initialConfigResults.toString() + "\n" + data) // Display initial config results above obdData
+
+                                var onDataUpdateStatus = initialConfigResults.toString()
+                                if(data.isNotEmpty()) {
+                                    onDataUpdateStatus+= "\n" + data
+                                }
+
+                                onDataUpdate(onDataUpdateStatus) // Display initial config results above obdData
                             }
                         }
                         is ConnectionState.ConnectionFailed -> {
@@ -159,7 +165,7 @@ class ConnectThread(
         try {
             obdConnection = ObdDeviceConnection(socket.getInputStream(), socket.getOutputStream())
 
-            initialConfigCommands.forEach { it ->
+            initialConfigCommands.forEachIndexed { index, it ->
                 if (!isRunning) return@flow
 
                 val result = runCommandSafely { obdConnection.run(it) }
@@ -169,7 +175,13 @@ class ConnectThread(
                 val commandFormattedValue = result.formattedValue
                 val resultRawValue = result.rawResponse.value
 
-                val resultString = "$commandName ($commandSend): ($resultRawValue) $commandFormattedValue\n"
+                var resultString = "$commandName ($commandSend): ($resultRawValue) $commandFormattedValue"
+
+                // if not first command, add a new line
+                if (index > 0) {
+                    resultString = "\n$resultString"
+                }
+
                 initialConfigResults.append(resultString) // Append result to the StringBuilder
                 emit("") // Emit the result of each initial command
 
@@ -204,7 +216,15 @@ class ConnectThread(
                     val obdDataMessage = StringBuilder()
 
                     commandList.forEach { (groupKey, groupCommands) ->
-                        obdDataMessage.append("\n$groupKey\n")
+
+                        var groupKeyName = groupKey
+                        if(groupKey == "GPS") {
+                            groupKeyName = "Location:\n"
+                        } else {
+                            groupKeyName = "\n\n$groupKey:\n"
+                        }
+                        obdDataMessage.append(groupKeyName)
+
                         val deferredResults = groupCommands.map { (key, value) ->
                             CoroutineScope(Dispatchers.IO).async {
                                 try {
@@ -227,8 +247,15 @@ class ConnectThread(
                         }
 
                         val results = deferredResults.map { it.await() }
-                        results.forEach { (key, commandVal) ->
-                            obdDataMessage.append("$key: $commandVal, \n")
+                        results.forEachIndexed() { index, (key, commandVal) ->
+
+                            // if not last command, add a comma
+                            if(index < results.size - 1) {
+                                obdDataMessage.append("$key: $commandVal,\n")
+                            } else {
+                                obdDataMessage.append("$key: $commandVal")
+                            }
+
                             commandResults[groupKey] = commandResults[groupKey] ?: mutableMapOf()
                             commandResults[groupKey]?.set(key, commandVal)
                         }
@@ -262,7 +289,7 @@ class ConnectThread(
             SetHeadersCommand(Switcher.ON),
             SetHeaderCommand("7E0"),
             ReadVoltageCommand(),
-            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_01_TO_20),
+            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_01_TO_20)
         )
 
     // List of commands to be executed
