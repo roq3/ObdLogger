@@ -265,6 +265,8 @@ class ConnectThread(
                         sendResultsToServer(uploadUrl, commandResults)
                     }
                     onDataUpdate(obdDataMessage.toString())
+
+                    delay(2000)
                 }
             } catch (e: IOException) {
                 onError("Connection lost: ${e.message}")

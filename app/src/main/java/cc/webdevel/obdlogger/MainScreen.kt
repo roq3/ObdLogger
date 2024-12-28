@@ -147,7 +147,7 @@ fun MainScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+//        Spacer(modifier = Modifier.height(16.dp))
 
         Column(
             modifier = Modifier
@@ -159,7 +159,8 @@ fun MainScreen(
                     text = "Status:\n$statusMessage",
                     color = Color.White,
                     modifier = Modifier
-                        .padding(top = 0.dp)
+                        .padding(top = 16.dp)
+                        .padding(bottom = 0.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(AlertSuccess.copy(alpha = 1f))
                         .padding(16.dp)
@@ -173,7 +174,8 @@ fun MainScreen(
                     text = errorMessage,
                     color = Color.White,
                     modifier = Modifier
-                        .padding(top = 0.dp)
+                        .padding(top = 16.dp)
+                        .padding(bottom = 0.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(AlertError.copy(alpha = 1f))
                         .padding(16.dp)
@@ -187,6 +189,7 @@ fun MainScreen(
                     text = pairedDevicesMessage,
                     modifier = Modifier
                         .padding(top = 16.dp)
+                        .padding(bottom = 0.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(AlertSuccess.copy(alpha = 1f))
                         .padding(16.dp)
@@ -200,6 +203,7 @@ fun MainScreen(
                     text = obdData,
                     modifier = Modifier
                         .padding(top = 16.dp)
+                        .padding(bottom = 0.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                         .padding(16.dp)
