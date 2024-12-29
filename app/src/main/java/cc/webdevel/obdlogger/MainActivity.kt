@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,6 +21,7 @@ import cc.webdevel.obdlogger.ui.theme.ObdLoggerTheme
 import androidx.activity.result.contract.ActivityResultContracts
 import cc.webdevel.obdlogger.bluetooth.*
 import cc.webdevel.obdlogger.mock.MockBluetoothDevice
+import android.content.SharedPreferences
 
 class MainActivity : ComponentActivity() {
 
@@ -31,10 +33,15 @@ class MainActivity : ComponentActivity() {
     private var obdData: String by mutableStateOf("") // Define obdData here
     private var pairedDevicesMessage: String by mutableStateOf("") // Define pairedDevicesMessage here
     private var showFetchDataButton: Boolean by mutableStateOf(false) // Define showFetchDataButton here
+    private lateinit var sharedPreferences: SharedPreferences
 
-    @SuppressLint("MissingPermission")
+    // onCreate method
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val savedUploadUrl = sharedPreferences.getString("upload_url", getString(R.string.upload_url))
+
         enableEdgeToEdge()
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -58,85 +65,100 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            ObdLoggerTheme {
-                val statusBarHeight = rememberStatusBarHeight()
-                var statusMessage by remember { mutableStateOf("Ready to connect...") }
-                var errorMessage by remember { mutableStateOf("") }
-                var obdData by remember { mutableStateOf("") }
-                var pairedDevicesMessage by remember { mutableStateOf("") }
-                var isConnected by remember { mutableStateOf(false) }
-                var uploadUrl by remember { mutableStateOf(getString(R.string.upload_url)) }
-                var isToggleOn by remember { mutableStateOf(false) }
-                var showFetchDataButton by remember { mutableStateOf(false) }
+            MainContent(savedUploadUrl)
+        }
+    }
 
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+    @Composable
+    // MainContent composable function
+    fun MainContent(savedUploadUrl: String?) {
+        ObdLoggerTheme {
+            val statusBarHeight = rememberStatusBarHeight()
+            var statusMessage by remember { mutableStateOf("Ready to connect...") }
+            var errorMessage by remember { mutableStateOf("") }
+            var obdData by remember { mutableStateOf("") }
+            var pairedDevicesMessage by remember { mutableStateOf("") }
+            var isConnected by remember { mutableStateOf(false) }
+            var uploadUrl by remember { mutableStateOf(savedUploadUrl ?: getString(R.string.upload_url)) }
+            var isToggleOn by remember { mutableStateOf(false) }
+            var showFetchDataButton by remember { mutableStateOf(false) }
 
-                    val onConnectClick = {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
 
-                        statusMessage = ""
-                        errorMessage = ""
-                        pairedDevicesMessage = ""
-                        obdData = ""
+                val onConnectClick = {
 
-                        if (isConnected) {
-                            disconnectDevice { message -> statusMessage = message }
-                            isConnected = false
+                    statusMessage = ""
+                    errorMessage = ""
+                    pairedDevicesMessage = ""
+                    obdData = ""
+
+                    if (isConnected) {
+                        disconnectDevice { message -> statusMessage = message }
+                        isConnected = false
+                    } else {
+                        if (bluetoothAdapter == null) {
+                            statusMessage = "Device doesn't support Bluetooth"
                         } else {
-                            if (bluetoothAdapter == null) {
-                                statusMessage = "Device doesn't support Bluetooth"
+                            if (!bluetoothAdapter!!.isEnabled) {
+                                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                                enableBluetoothLauncher.launch(enableBtIntent)
                             } else {
-                                if (!bluetoothAdapter!!.isEnabled) {
-                                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                                    enableBluetoothLauncher.launch(enableBtIntent)
-                                } else {
-                                    connectToDevice(
-                                        onStatusUpdate = { message -> statusMessage = message },
-                                        onError = { error -> errorMessage = error },
-                                        onPairedDevicesUpdate = { pairedDevices -> pairedDevicesMessage = pairedDevices },
-                                        uploadUrl = uploadUrl,
-                                        isToggleOn = isToggleOn,
-                                        onDataUpdate = { data -> obdData = data },
-                                        onFetchDataReady = {
-                                            showFetchDataButton = true
-                                            statusMessage = "Connected to ECU"
-                                        }
-                                    )
-                                    isConnected = true
-                                }
+                                connectToDevice(
+                                    onStatusUpdate = { message -> statusMessage = message },
+                                    onError = { error -> errorMessage = error },
+                                    onPairedDevicesUpdate = { pairedDevices -> pairedDevicesMessage = pairedDevices },
+                                    uploadUrl = uploadUrl,
+                                    isToggleOn = isToggleOn,
+                                    onDataUpdate = { data -> obdData = data },
+                                    onFetchDataReady = {
+                                        showFetchDataButton = true
+                                        statusMessage = "Connected to ECU"
+                                    }
+                                )
+                                isConnected = true
                             }
                         }
                     }
-
-                    MainScreen(
-                        statusBarHeight = statusBarHeight,
-                        statusMessage = statusMessage,
-                        errorMessage = errorMessage,
-                        pairedDevicesMessage = pairedDevicesMessage,
-                        onConnectClick = onConnectClick,
-                        isConnected = isConnected,
-                        onUploadUrlChange = { url ->
-                            uploadUrl = url
-                            connectThread?.updateUploadUrl(url)
-                        },
-                        onToggleChange = { isOn ->
-                            isToggleOn = isOn
-                            connectThread?.updateToggleState(isOn)
-                        },
-                        uploadUrlString = uploadUrl,
-                        obdData = obdData,
-                        onCustomCommand = { command ->
-                            connectThread?.sendCustomCommand(command)
-                        },
-                        onFetchDataClick = {
-                            connectThread?.fetchData()
-                        },
-                        showFetchDataButton = showFetchDataButton
-                    )
                 }
+
+                // Call the MainScreen composable function
+                MainScreen(
+                    statusBarHeight = statusBarHeight,
+                    statusMessage = statusMessage,
+                    errorMessage = errorMessage,
+                    pairedDevicesMessage = pairedDevicesMessage,
+                    onConnectClick = onConnectClick,
+                    isConnected = isConnected,
+                    onUploadUrlChange = { url ->
+                        uploadUrl = url
+                        saveUploadUrl(url)
+                        connectThread?.updateUploadUrl(url)
+                    },
+                    onToggleChange = { isOn ->
+                        isToggleOn = isOn
+                        connectThread?.updateToggleState(isOn)
+                    },
+                    uploadUrlString = uploadUrl,
+                    obdData = obdData,
+                    onCustomCommand = { command ->
+                        connectThread?.sendCustomCommand(command)
+                    },
+                    onFetchDataClick = {
+                        connectThread?.fetchData()
+                    },
+                    showFetchDataButton = showFetchDataButton
+                )
             }
+        }
+    }
+
+    private fun saveUploadUrl(url: String) {
+        with(sharedPreferences.edit()) {
+            putString("upload_url", url)
+            apply()
         }
     }
 
