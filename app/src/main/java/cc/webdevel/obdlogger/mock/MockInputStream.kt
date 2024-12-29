@@ -60,9 +60,9 @@ class MockInputStream : InputStream() {
         "01 00" to { "41 00 D8 3B 20 13>" }, // AvailablePIDsCommand
 
         "AT SP 0" to { "OK" }, // Set Protocol to Automatic
-        "AT SP 3" to { "OK" }, // Set Protocol to ISO 9141-2 BMW
-        "AT SP 4" to { "OK" }, // Set Protocol to ISO 14230-4 (KWP2000 Fast) BMW
-        "AT SP 5" to { "OK" }, // Set Protocol to ISO 14230-4 (KWP2000) BMW
+        "AT SP 3" to { "OK" }, // Set Protocol to ISO 9141-2
+        "AT SP 4" to { "OK" }, // Set Protocol to ISO ISO 14230-4 (KWP 5BAUD)
+        "AT SP 5" to { "OK" }, // Set Protocol to ISO 14230-4 (KWP FAST)
         "AT E0" to { "OK" }, // Turn off echo
         "AT E1" to { "OK" }, // Turn on echo
         "AT Z" to { "ELM327 v2.1" }, // Reset
@@ -76,11 +76,13 @@ class MockInputStream : InputStream() {
         "AT RV" to { "12.3V" }, // Read the voltage
         "AT ST 2a" to { "OK" }, // Set the timeout to 42
         "AT ST d0" to { "OK" }, // Set the timeout to 2000
+        "AT ST 0" to { "OK" }, // Set the timeout to 0
         "AT CAF0" to { "OK" }, // Disable automatic formatting
         "AT H1" to { "OK" }, // Turn on headers
         "AT H0" to { "OK" }, // Turn off headers
         "AT SH 7E0" to { "OK" }, // Set the header to 7E0 Engine
         "AT SH 7E1" to { "OK" }, // Set the header to 7E1 Transmission
+        "AT D" to { "OK" }, // Turn off the headers and set the protocol to automatic
 
         // BMW E46 318i N42 OBD-II Codes List
         "01 03" to { "41 03 01 02>" }, // Bank 1: 01, Bank 2: 02
@@ -107,7 +109,6 @@ class MockInputStream : InputStream() {
 
     fun setCommand(command: String) {
         currentResponse = commandResponses[command]?.invoke()
-//        currentResponse = commandResponses[command]
         index = 0
     }
 

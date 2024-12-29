@@ -26,6 +26,11 @@ class MainActivity : ComponentActivity() {
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var connectThread: ConnectThread? = null
     private lateinit var enableBluetoothLauncher: ActivityResultLauncher<Intent>
+    private var isConnected: Boolean by mutableStateOf(false)
+    private var errorMessage: String by mutableStateOf("") // Define errorMessage here
+    private var obdData: String by mutableStateOf("") // Define obdData here
+    private var pairedDevicesMessage: String by mutableStateOf("") // Define pairedDevicesMessage here
+    private var showFetchDataButton: Boolean by mutableStateOf(false) // Define showFetchDataButton here
 
     @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,15 +81,9 @@ class MainActivity : ComponentActivity() {
                         pairedDevicesMessage = ""
                         obdData = ""
 
-                        if (connectThread != null) {
-                            connectThread?.cancel()
-                            connectThread = null
-                            statusMessage = "Disconnected. Ready to connect..."
+                        if (isConnected) {
+                            disconnectDevice { message -> statusMessage = message }
                             isConnected = false
-                            obdData = ""
-                            errorMessage = ""
-                            pairedDevicesMessage = ""
-                            showFetchDataButton = false
                         } else {
                             if (bluetoothAdapter == null) {
                                 statusMessage = "Device doesn't support Bluetooth"
@@ -212,5 +211,17 @@ class MainActivity : ComponentActivity() {
             onFetchDataReady
         )
         connectThread?.start()
+        isConnected = true // Update the connection state
+    }
+
+    private fun disconnectDevice(onStatusUpdate: (String) -> Unit) {
+        connectThread?.disconnect() // Call the new disconnect method
+        connectThread = null
+        isConnected = false
+        obdData = ""
+        errorMessage = ""
+        pairedDevicesMessage = ""
+        showFetchDataButton = false
+        onStatusUpdate("Disconnected. Ready to connect...")
     }
 }

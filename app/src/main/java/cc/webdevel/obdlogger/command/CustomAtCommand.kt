@@ -1,7 +1,6 @@
 package cc.webdevel.obdlogger.command
 
 import com.github.eltonvs.obd.command.ATCommand
-import com.github.eltonvs.obd.command.ObdCommand
 
 // https://www.matthewsvolvosite.com/forums/viewtopic.php?t=67588&start=14
 // https://www.sparkfun.com/datasheets/Widgets/ELM327_AT_Commands.pdf
@@ -69,4 +68,13 @@ class SetHeaderCommand(header: String) : ATCommand() {
     override val tag = "SET_HEADER_COMMAND"
     override val name = "Set Header Command"
     override val pid = "SH $header"
+}
+
+// Set All to Defaults
+class SetDefaultsCommand() : ATCommand() {
+
+    // Required
+    override val tag = "SET_DEFAULTS_COMMAND"
+    override val name = "Set Defaults Command"
+    override val pid = "D"
 }

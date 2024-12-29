@@ -43,6 +43,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import android.util.Log
 import kotlinx.coroutines.Job
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 // Thread to connect to the OBD device
 class ConnectThread(
@@ -65,6 +67,8 @@ class ConnectThread(
     private var initialConfigResults = StringBuilder() // To store initial config command results
     private var fetchDataJob: Job? = null
 
+    private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
+
     // UUID for OBD-II devices
     companion object {
         private val OBD_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
@@ -86,6 +90,21 @@ class ConnectThread(
         uploadUrl = newUrl
     }
 
+    // Update the disconnect method to set the flag
+    fun disconnect() {
+        cancel()
+    }
+
+    // Cancel the thread
+    private fun cancel() {
+        isRunning = false
+        try {
+            mmSocket?.close()
+        } catch (e: Exception) {
+            onError("Could not close the client socket: ${e.message}")
+        }
+    }
+
     @SuppressLint("MissingPermission")
     // Connect to the device
     fun connectToDevice(bluetoothDevice: BluetoothDeviceInterface) = flow {
@@ -105,13 +124,12 @@ class ConnectThread(
     // Connect to the device and start the thread
     @SuppressLint("MissingPermission")
     override fun run() {
-
         try {
             CoroutineScope(Dispatchers.IO).launch {
-
                 fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
                 connectToDevice(device).collect { state ->
+                    _connectionState.value = state
                     when (state) {
                         is ConnectionState.Connecting -> {
                             onStatusUpdate("Connecting to '${state.bluetoothDevice.getName()}'")
@@ -132,14 +150,9 @@ class ConnectThread(
                         }
                         is ConnectionState.ConnectionFailed -> {
                             onError("Error: ${state.failureReason}")
-                            delay(1000)
-                            onError("")
-                            onStatusUpdate("Reconnecting to '${device.getName()}'")
-                            delay(1000)
-                            this@ConnectThread.restart() // Restart the thread
                         }
                         is ConnectionState.Disconnected -> {
-                            onError("Disconnected from '${device.getName()}'")
+                            onStatusUpdate("Disconnected from '${device.getName()}'")
                             onError("")
                             initialConfigResults.clear()
                             onDataUpdate("")
@@ -153,7 +166,15 @@ class ConnectThread(
         }
     }
 
-    private fun restart() {
+    // Restart the thread
+    // Will be used in future versions to handle reconnection
+    private suspend fun restart() {
+
+        delay(1000)
+        onError("")
+        onStatusUpdate("Reconnecting to '${device.getName()}'")
+        delay(1000)
+
         isRunning = false // Stop the current thread
         cancel() // Cancel the current thread
         ConnectThread(
@@ -175,40 +196,58 @@ class ConnectThread(
         try {
             obdConnection = ObdDeviceConnection(socket.getInputStream(), socket.getOutputStream())
 
+            try {
+                if (!::obdConnection.isInitialized) {
+                    onError("OBD connection is not initialized")
+                    return@flow
+                }
+            } catch (e: Exception) {
+                onError("Error initializing OBD connection: ${e.message}")
+                return@flow
+            }
+
             initialConfigCommands.forEachIndexed { index, it ->
                 if (!isRunning) return@flow
 
-                val result = runCommandSafely { obdConnection.run(it) }
+                onStatusUpdate("Running command: ${it.name}")
 
-                val commandName = result.command.name
-                val commandSend = result.command.rawCommand
-                val commandFormattedValue = result.formattedValue
-                val resultRawValue = result.rawResponse.value
+                try {
 
-                var resultString = "$commandName ($commandSend): ($resultRawValue) $commandFormattedValue"
+                    val result = runCommandSafely { obdConnection.run(it) }
 
-                // if not first command, add a new line
-                if (index > 0) {
-                    resultString = "\n$resultString"
-                }
+                    val commandName = result.command.name
+                    val commandSend = result.command.rawCommand
+                    val commandFormattedValue = result.formattedValue
+                    val resultRawValue = result.rawResponse.value
 
-                initialConfigResults.append(resultString) // Append result to the StringBuilder
-                emit("") // Emit the result of each initial command
+                    var resultString =
+                        "$commandName ($commandSend): ($resultRawValue) $commandFormattedValue"
 
-                if (it is ResetAdapterCommand) {
+                    // if not first command, add a new line
+                    if (index > 0) {
+                        resultString = "\n$resultString"
+                    }
+
+                    initialConfigResults.append(resultString) // Append result to the StringBuilder
+                    emit("") // Emit the result of each initial command
+
+                    if (it is AvailablePIDsCommand) {
+                        val availableCommands = commandFormattedValue.split(",")
+                            .filter {
+                            it.isNotEmpty()
+                        }
+
+                        if (availableCommands.size > 1) {
+                            delay(500)
+                            onFetchDataReady() // Notify that the initial commands are done
+                        }
+                    }
+
                     delay(500)
-                }
 
-                if (it is AvailablePIDsCommand) {
-                    val availableCommands = commandFormattedValue.split(",")
-                        .filter {
-                        it.isNotEmpty()
-                    }
-
-                    if (availableCommands.size > 1) {
-                        delay(500)
-                        onFetchDataReady() // Notify that the initial commands are done
-                    }
+                } catch (e: Exception) {
+                    onError("Error running command: ${it.name} - ${e.toString()}")
+                    return@flow
                 }
             }
         } catch (e: Exception) {
@@ -293,18 +332,26 @@ class ConnectThread(
     // List of initial configuration commands
     private val initialConfigCommands
         get() = listOf(
-//            ResetAdapterCommand(),
-            SetEchoCommand(Switcher.OFF),
-            SetLineFeedCommand(Switcher.OFF),
-            IdentifyCommand(),
-            SetTimeoutCommand(2000),
-            DisableAutoFormattingCommand(),
-            SelectProtocolCommand(ObdProtocols.ISO_14230_4_KWP_FAST),
-            IsoBaudCommand(10),
-            SetHeadersCommand(Switcher.ON),
-            SetHeaderCommand("7E0"),
-            ReadVoltageCommand(),
-            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_01_TO_20)
+
+            // default commands
+            SetDefaultsCommand(), // AT D
+            ResetAdapterCommand(), // AT Z
+            SetEchoCommand(Switcher.OFF), // AT E0
+            SetLineFeedCommand(Switcher.OFF), // AT L0
+            SetSpacesCommand(Switcher.OFF), // AT S0
+            SetHeadersCommand(Switcher.OFF), // AT H0
+            SelectProtocolCommand(ObdProtocols.ISO_14230_4_KWP_FAST), // AT SP 5
+
+            // extended commands
+            IdentifyCommand(), // AT I
+            SetTimeoutCommand(0), // AT ST d0
+            DisableAutoFormattingCommand(), // AT CAF0
+            IsoBaudCommand(10), // AT IB 10
+            SetHeaderCommand("7E0"), // AT SH 7E0
+            ReadVoltageCommand(), // AT RV
+
+            // PIDs commands
+            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_01_TO_20) // 01 00
         )
 
     // List of commands to be executed
@@ -353,16 +400,6 @@ class ConnectThread(
             } catch (e: Exception) {
                 onError("Error executing custom command: $e")
             }
-        }
-    }
-
-    // Cancel the thread
-    fun cancel() {
-        isRunning = false
-        try {
-            mmSocket?.close()
-        } catch (e: Exception) {
-            onError("Could not close the client socket: ${e.message}")
         }
     }
 

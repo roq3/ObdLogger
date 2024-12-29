@@ -182,20 +182,6 @@ fun MainScreen(
 
                 )
             }
-            if (pairedDevicesMessage.isNotEmpty()) {
-                Text(
-                    text = pairedDevicesMessage,
-                    modifier = Modifier
-                        .padding(top = 16.dp)
-                        .padding(bottom = 0.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(AlertSuccess.copy(alpha = 1f))
-                        .padding(16.dp)
-                        .align(Alignment.CenterHorizontally)
-                        .fillMaxWidth()
-                    ,
-                )
-            }
             if (isConnected && obdData.isNotEmpty()) {
                 Text(
                     text = obdData,
@@ -208,6 +194,20 @@ fun MainScreen(
                         .align(Alignment.CenterHorizontally)
                         .fillMaxWidth(),
                     style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
+                )
+            }
+            if (pairedDevicesMessage.isNotEmpty()) {
+                Text(
+                    text = pairedDevicesMessage,
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .padding(bottom = 0.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(AlertSuccess.copy(alpha = 1f))
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .fillMaxWidth()
+                    ,
                 )
             }
         }
