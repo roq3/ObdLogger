@@ -36,12 +36,13 @@ fun MainScreen(
     uploadUrlString: String,
     onCustomCommand: (String) -> Unit,
     onFetchDataClick: () -> Unit,
-    showFetchDataButton: Boolean
+    showFetchDataButton: Boolean,
+    isLoading: MutableState<Boolean>
 ) {
     val scrollState = rememberScrollState()
     var uploadUrl by remember { mutableStateOf(uploadUrlString) }
     var isToggleOn by remember { mutableStateOf(false) }
-    var customCommand by remember { mutableStateOf("") }
+    var customCommand by remember { mutableStateOf("01 00") }
     var isCustomCommandEnabled by remember { mutableStateOf(false) }
 
     Column(
@@ -72,30 +73,32 @@ fun MainScreen(
                 }
             }
         }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
-        ) {
-            Text(text = "Custom Command", fontSize = 16.sp)
-            Switch(
-                checked = isCustomCommandEnabled,
-                onCheckedChange = { isCustomCommandEnabled = it },
-                modifier = Modifier.padding(start = 8.dp)
-            )
+        if (isConnected) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                Text(text = "Custom Command", fontSize = 16.sp)
+                Switch(
+                    checked = isCustomCommandEnabled,
+                    onCheckedChange = { isCustomCommandEnabled = it },
+                    modifier = Modifier.padding(start = 8.dp)
+                )
 
-            Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
 
-            Text(text = "Upload", fontSize = 16.sp)
-            Switch(
-                checked = isToggleOn,
-                onCheckedChange = {
-                    isToggleOn = it
-                    onToggleChange(it)
-                },
-                modifier = Modifier.padding(start = 8.dp)
-            )
+                Text(text = "Upload", fontSize = 16.sp)
+                Switch(
+                    checked = isToggleOn,
+                    onCheckedChange = {
+                        isToggleOn = it
+                        onToggleChange(it)
+                    },
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
         }
 
         if (isToggleOn) {
@@ -139,8 +142,22 @@ fun MainScreen(
                     )
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = { onCustomCommand(customCommand) }) {
-                    Text("Send Command")
+                Button(
+                    onClick = {
+                        isLoading.value = true
+                        onCustomCommand(customCommand)
+                    },
+                    enabled = !isLoading.value
+                ) {
+                    if (isLoading.value) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Send Command")
+                    }
                 }
             }
         }

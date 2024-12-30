@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
     private var pairedDevicesMessage: String by mutableStateOf("") // Define pairedDevicesMessage here
     private var showFetchDataButton: Boolean by mutableStateOf(false) // Define showFetchDataButton here
     private lateinit var sharedPreferences: SharedPreferences
+    private var isLoading: MutableState<Boolean> = mutableStateOf(false)
 
     // onCreate method
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,13 +66,13 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MainContent(savedUploadUrl)
+            MainContent(savedUploadUrl, isLoading)
         }
     }
 
     @Composable
     // MainContent composable function
-    fun MainContent(savedUploadUrl: String?) {
+    fun MainContent(savedUploadUrl: String?, isLoading: MutableState<Boolean>) {
         ObdLoggerTheme {
             val statusBarHeight = rememberStatusBarHeight()
             var statusMessage by remember { mutableStateOf("Ready to connect...") }
@@ -107,7 +108,10 @@ class MainActivity : ComponentActivity() {
                                 enableBluetoothLauncher.launch(enableBtIntent)
                             } else {
                                 connectToDevice(
-                                    onStatusUpdate = { message -> statusMessage = message },
+                                    onStatusUpdate = { message ->
+                                        statusMessage = message
+                                        errorMessage = ""
+                                 },
                                     onError = { error -> errorMessage = error },
                                     onPairedDevicesUpdate = { pairedDevices -> pairedDevicesMessage = pairedDevices },
                                     uploadUrl = uploadUrl,
@@ -144,12 +148,14 @@ class MainActivity : ComponentActivity() {
                     uploadUrlString = uploadUrl,
                     obdData = obdData,
                     onCustomCommand = { command ->
-                        connectThread?.sendCustomCommand(command)
+                        isLoading.value = true
+                        connectThread?.sendCustomCommand(command, isLoading)
                     },
                     onFetchDataClick = {
                         connectThread?.fetchData()
                     },
-                    showFetchDataButton = showFetchDataButton
+                    showFetchDataButton = showFetchDataButton,
+                    isLoading = isLoading
                 )
             }
         }

@@ -57,12 +57,18 @@ class MockInputStream : InputStream() {
         "07" to { generateRandomHexValue(2) }, // PendingTroubleCodesCommand
         "0A" to { generateRandomHexValue(2) }, // PermanentTroubleCodesCommand
 
-        "01 00" to { "41 00 D8 3B 20 13>" }, // AvailablePIDsCommand
+        "01 00" to { "41 00 D8 3B 20 13>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 01 to 20
+        "01 20" to { "41 20 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 21 to 40
+        "01 40" to { "41 40 00 00 00 00>" }, // AvailablePIDsCommand (01 40 00 00 00 00) PIDs from 41 to 60
+        "01 60" to { "41 60 00 00 00 00>" }, // AvailablePIDsCommand (01 60 00 00 00 00) PIDs from 61 to 80
+        "01 80" to { "41 80 00 00 00 00>" }, // AvailablePIDsCommand (01 80 00 00 00 00) PIDs from 81 to A0
 
         "AT SP 0" to { "OK" }, // Set Protocol to Automatic
         "AT SP 3" to { "OK" }, // Set Protocol to ISO 9141-2
+        "AT SP3" to { "OK" }, // Set Protocol to ISO 9141-2
         "AT SP 4" to { "OK" }, // Set Protocol to ISO ISO 14230-4 (KWP 5BAUD)
         "AT SP 5" to { "OK" }, // Set Protocol to ISO 14230-4 (KWP FAST)
+        "At Sp A" to { "OK" }, // Set Protocol to SAE J1850 PWM
         "AT E0" to { "OK" }, // Turn off echo
         "AT E1" to { "OK" }, // Turn on echo
         "AT Z" to { "ELM327 v2.1" }, // Reset
@@ -74,15 +80,16 @@ class MockInputStream : InputStream() {
         "AT IB 48" to { "4800" }, // Set ISO Baud rate to 4800
         "AT PPS" to { "PPS Summary" }, // Print a PP Summary
         "AT RV" to { "12.3V" }, // Read the voltage
-        "AT ST 2a" to { "OK" }, // Set the timeout to 42
-        "AT ST d0" to { "OK" }, // Set the timeout to 2000
-        "AT ST 0" to { "OK" }, // Set the timeout to 0
+        "AT ST 2a" to { "OK" }, // Set the timeout to 42 (42 * 4 = 168 ms)
+        "AT ST d0" to { "OK" }, // Set the timeout to 208 (208 * 4 = 832 ms)
+        "AT ST 1F4" to { "OK" }, // Set the timeout to 500 (500 * 4 = 2000 ms)
         "AT CAF0" to { "OK" }, // Disable automatic formatting
-        "AT H1" to { "OK" }, // Turn on headers
-        "AT H0" to { "OK" }, // Turn off headers
+        "AT H1" to { "OK" }, // Turn on headers HEX (H1)
+        "AT H0" to { "OK" }, // Turn off headers ASCII (H0)
         "AT SH 7E0" to { "OK" }, // Set the header to 7E0 Engine
         "AT SH 7E1" to { "OK" }, // Set the header to 7E1 Transmission
         "AT D" to { "OK" }, // Turn off the headers and set the protocol to automatic
+        "AT S0" to { "OK" }, // Turn off spaces
 
         // BMW E46 318i N42 OBD-II Codes List
         "01 03" to { "41 03 01 02>" }, // Bank 1: 01, Bank 2: 02
