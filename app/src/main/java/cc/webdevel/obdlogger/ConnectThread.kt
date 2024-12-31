@@ -10,7 +10,6 @@ import com.github.eltonvs.obd.command.ObdCommand
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import com.github.eltonvs.obd.command.engine.*
 import com.github.eltonvs.obd.command.at.*
-import com.github.eltonvs.obd.command.control.AvailablePIDsCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

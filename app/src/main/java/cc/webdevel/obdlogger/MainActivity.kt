@@ -1,8 +1,6 @@
 package cc.webdevel.obdlogger
 
 import android.annotation.SuppressLint
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -24,14 +22,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import cc.webdevel.obdlogger.bluetooth.*
 import cc.webdevel.obdlogger.mock.MockBluetoothDevice
 import android.content.SharedPreferences
-import android.os.Handler
-import android.os.Looper
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.lang.Thread.sleep
-import kotlin.system.exitProcess
 
 class MainActivity : ComponentActivity() {
 

@@ -3,7 +3,6 @@ package cc.webdevel.obdlogger.command
 import com.github.eltonvs.obd.command.ATCommand
 import com.github.eltonvs.obd.command.ObdCommand
 import com.github.eltonvs.obd.command.ObdRawResponse
-import com.github.eltonvs.obd.command.control.AvailablePIDsCommand
 import com.github.eltonvs.obd.command.getBitAt
 
 // https://www.matthewsvolvosite.com/forums/viewtopic.php?t=67588&start=14
@@ -84,7 +83,7 @@ class SetDefaultsCommand() : ATCommand() {
     override val pid = "D"
 }
 
-class AvailablePIDsCustomCommand(private val range: AvailablePIDsCustomCommand.AvailablePIDsRanges) : ObdCommand() {
+class AvailablePIDsCustomCommand(private val range: AvailablePIDsRanges) : ObdCommand() {
     override val tag = "AVAILABLE_COMMANDS_${range.name}"
     override val name = "Available Commands - ${range.displayName}"
     override val mode = "01"

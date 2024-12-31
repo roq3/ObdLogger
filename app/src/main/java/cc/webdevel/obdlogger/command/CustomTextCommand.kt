@@ -19,6 +19,4 @@ class CustomObdCommand(command: String) : ObdCommand() {
     override val mode = command
     override val pid = ""
     override val skipDigitCheck = true
-
-    val customRawCommand = command
 }
