@@ -16,7 +16,9 @@ class CustomObdCommand(command: String) : ObdCommand() {
     // Required
     override val tag = "CUSTOM_OBD_COMMAND"
     override val name = "Custom OBD Command"
-    override val mode = ""
-    override val pid = command
+    override val mode = command
+    override val pid = ""
     override val skipDigitCheck = true
+
+    val customRawCommand = command
 }
