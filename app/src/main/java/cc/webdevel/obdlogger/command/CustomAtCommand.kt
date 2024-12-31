@@ -3,6 +3,7 @@ package cc.webdevel.obdlogger.command
 import com.github.eltonvs.obd.command.ATCommand
 import com.github.eltonvs.obd.command.ObdCommand
 import com.github.eltonvs.obd.command.ObdRawResponse
+import com.github.eltonvs.obd.command.control.AvailablePIDsCommand
 import com.github.eltonvs.obd.command.getBitAt
 
 // https://www.matthewsvolvosite.com/forums/viewtopic.php?t=67588&start=14
@@ -83,16 +84,15 @@ class SetDefaultsCommand() : ATCommand() {
     override val pid = "D"
 }
 
-class AvailablePIDsCommand(private val range: AvailablePIDsRanges) : ObdCommand() {
+class AvailablePIDsCustomCommand(private val range: AvailablePIDsCustomCommand.AvailablePIDsRanges) : ObdCommand() {
     override val tag = "AVAILABLE_COMMANDS_${range.name}"
     override val name = "Available Commands - ${range.displayName}"
     override val mode = "01"
     override val pid = range.pid
-    override val skipDigitCheck = true
 
     override val defaultUnit = ""
     override val handler = { it: ObdRawResponse ->
-        parsePIDs(it.processedValue).joinToString(",") { "%02X".format(it) }
+        parseCustomPIDs(it.processedValue).joinToString(",") { "%02X".format(it) }
     }
 
     private fun parsePIDs(rawValue: String): IntArray {
@@ -101,6 +101,19 @@ class AvailablePIDsCommand(private val range: AvailablePIDsRanges) : ObdCommand(
         return (1..33).fold(intArrayOf()) { acc, i ->
             if (value.getBitAt(i) == 1) acc.plus(i + initialPID) else acc
         }
+    }
+
+    private fun parseCustomPIDs(rawValue: String): IntArray {
+        val responses = rawValue.chunked(12).filter { it.startsWith("4100") }
+        val pids = mutableListOf<Int>()
+
+        responses.forEach { response ->
+            parsePIDs(response).forEach { pid ->
+                pids.add(pid)
+            }
+        }
+
+        return pids.toIntArray()
     }
 
     enum class AvailablePIDsRanges(val displayName: String, internal val pid: String) {
