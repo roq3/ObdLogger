@@ -10,6 +10,7 @@ import com.github.eltonvs.obd.command.ObdCommand
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import com.github.eltonvs.obd.command.engine.*
 import com.github.eltonvs.obd.command.at.*
+import com.github.eltonvs.obd.command.control.AvailablePIDsCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,7 +42,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.withTimeoutOrNull
 import android.util.Log
 import androidx.compose.runtime.MutableState
-import cc.webdevel.obdlogger.command.AvailablePIDsCommand
 import kotlinx.coroutines.Job
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +57,7 @@ class ConnectThread(
     private val context: Context,
     private val onDataUpdate: (String) -> Unit,
     private val onFetchDataReady: () -> Unit,
+    private var isConnected: MutableState<Boolean>,
 ) : Thread() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient // Location client
@@ -67,7 +68,7 @@ class ConnectThread(
     private var initialConfigResults = StringBuilder() // To store initial config command results
     private var fetchDataJob: Job? = null
 
-    private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
+    val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
 
     // UUID for OBD-II devices
     companion object {
@@ -137,6 +138,7 @@ class ConnectThread(
                         }
                         is ConnectionState.Connected -> {
                             onStatusUpdate("Connected to '${device.getName()}'")
+                            isConnected.value = true
 
                             startObdCommandFlow(state.socket).collect { data ->
 
@@ -186,7 +188,8 @@ class ConnectThread(
             isToggleOn,
             context,
             onDataUpdate,
-            onFetchDataReady
+            onFetchDataReady,
+            isConnected
         ).start() // Start a new thread instance
     }
 
@@ -231,7 +234,7 @@ class ConnectThread(
                     initialConfigResults.append(resultString) // Append result to the StringBuilder
                     emit("\nLast Response: $resultString") // Emit the result of each initial command
 
-                    if (it is AvailablePIDsCommand) {
+                    if (it is AvailablePIDsCustomCommand) {
                         val availableCommands = commandFormattedValue.split(",")
                             .filter {
                             it.isNotEmpty()
@@ -335,28 +338,12 @@ class ConnectThread(
 
             // default commands
             SetDefaultsCommand(), // AT D
-            ResetAdapterCommand(), // AT Z
             SetEchoCommand(Switcher.OFF), // AT E0
-//            SetLineFeedCommand(Switcher.OFF), // AT L0
-//            SetSpacesCommand(Switcher.ON), // AT S1
-//            SetHeadersCommand(Switcher.OFF), // AT H0
-//            SelectProtocolCommand(ObdProtocols.ISO_9141_2), // AT SP 3
-            CustomATCommand("SP3"), // AT SP 3
-
-            // extended commands
-//            IdentifyCommand(), // AT I
-//            SetTimeoutCommand(2000), // AT ST
-//            IsoBaudCommand(10), // AT IB 10
-            SetHeaderCommand("7E0"), // AT SH 7E0
-//            ReadVoltageCommand(), // AT RV
+            SetHeadersCommand(Switcher.OFF), // AT H0
+            SelectProtocolCommand(ObdProtocols.ISO_9141_2), // AT SP 3
 
             // PIDs commands
-            SetHeadersCommand(Switcher.OFF),
-            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_01_TO_20), // 01 00
-            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_21_TO_40), // 01 20
-//            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_41_TO_60), // 01 40
-//            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_61_TO_80), // 01 60
-//            AvailablePIDsCommand(AvailablePIDsCommand.AvailablePIDsRanges.PIDS_81_TO_A0), // 01 80
+            AvailablePIDsCustomCommand(AvailablePIDsCustomCommand.AvailablePIDsRanges.PIDS_01_TO_20), // 01 00
         )
 
     // List of commands to be executed
@@ -382,10 +369,7 @@ class ConnectThread(
     // Send a custom command
     fun sendCustomCommand(command: String, isLoading: MutableState<Boolean>) {
         CoroutineScope(Dispatchers.IO).launch {
-            mmSocket?.let {
-                val socket = it
-                obdConnection = ObdDeviceConnection(socket.getInputStream(), socket.getOutputStream())
-            }
+            isLoading.value = true // Set loading state
 
             try {
                 if (!::obdConnection.isInitialized) {
@@ -400,9 +384,16 @@ class ConnectThread(
                     return@launch
                 }
 
+                onDataUpdate("Running custom command: $command")
+
                 val commandForCustom: ObdCommand = when (command) {
                     "01 0C" -> RPMCommand()
                     "01 0D" -> SpeedCommand()
+                    "01 00" -> AvailablePIDsCustomCommand(AvailablePIDsCustomCommand.AvailablePIDsRanges.PIDS_01_TO_20)
+                    "01 20" -> AvailablePIDsCustomCommand(AvailablePIDsCustomCommand.AvailablePIDsRanges.PIDS_21_TO_40)
+                    "01 40" -> AvailablePIDsCustomCommand(AvailablePIDsCustomCommand.AvailablePIDsRanges.PIDS_41_TO_60)
+                    "01 60" -> AvailablePIDsCustomCommand(AvailablePIDsCustomCommand.AvailablePIDsRanges.PIDS_61_TO_80)
+                    "01 80" -> AvailablePIDsCustomCommand(AvailablePIDsCustomCommand.AvailablePIDsRanges.PIDS_81_TO_A0)
                     else -> CustomObdCommand(command)
                 }
 
@@ -418,9 +409,7 @@ class ConnectThread(
                 val resultString =
                     "$commandName ($commandSend): ($resultRawValue) $commandFormattedValue"
 
-//                initialConfigResults.append("\n$resultString") // Append result to the StringBuilder
                 onDataUpdate("Custom Command Result: $resultString") // Display initial config results above obdData
-
                 onStatusUpdate("Custom Command Result: $resultString")
             } catch (e: Exception) {
                 onError("Error executing custom command: $e")

@@ -1,6 +1,8 @@
 package cc.webdevel.obdlogger
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -22,13 +24,21 @@ import androidx.activity.result.contract.ActivityResultContracts
 import cc.webdevel.obdlogger.bluetooth.*
 import cc.webdevel.obdlogger.mock.MockBluetoothDevice
 import android.content.SharedPreferences
+import android.os.Handler
+import android.os.Looper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.lang.Thread.sleep
+import kotlin.system.exitProcess
 
 class MainActivity : ComponentActivity() {
 
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var connectThread: ConnectThread? = null
     private lateinit var enableBluetoothLauncher: ActivityResultLauncher<Intent>
-    private var isConnected: Boolean by mutableStateOf(false)
+    private var isConnected: MutableState<Boolean> = mutableStateOf(false)
     private var errorMessage: String by mutableStateOf("") // Define errorMessage here
     private var obdData: String by mutableStateOf("") // Define obdData here
     private var pairedDevicesMessage: String by mutableStateOf("") // Define pairedDevicesMessage here
@@ -107,7 +117,7 @@ class MainActivity : ComponentActivity() {
                                 val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                                 enableBluetoothLauncher.launch(enableBtIntent)
                             } else {
-                                connectToDevice(
+                                val connectedToDevice = connectToDevice(
                                     onStatusUpdate = { message ->
                                         statusMessage = message
                                         errorMessage = ""
@@ -122,7 +132,10 @@ class MainActivity : ComponentActivity() {
                                         statusMessage = "Connected to ECU"
                                     }
                                 )
-                                isConnected = true
+
+                                if (connectedToDevice) {
+                                    isConnected = true
+                                }
                             }
                         }
                     }
@@ -177,19 +190,18 @@ class MainActivity : ComponentActivity() {
         isToggleOn: Boolean = false,
         onDataUpdate: (String) -> Unit,
         onFetchDataReady: () -> Unit
-    ) {
+    ): Boolean {
         try {
 
             if (resources.getBoolean(R.bool.use_mock_device)) {
-                connectToThread(MockBluetoothDevice(), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, onDataUpdate, onFetchDataReady)
-                return
+                return connectToThread(MockBluetoothDevice(), bluetoothAdapter!!, onStatusUpdate, onError, uploadUrl, isToggleOn, onDataUpdate, onFetchDataReady)
             }
 
             val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
 
             if (pairedDevices.isNullOrEmpty()) {
                 onError("No paired Bluetooth devices found")
-                return
+                return false
             }
 
             val pairedDevicesMessage = pairedDevices.joinToString(separator = "\n") { device ->
@@ -200,7 +212,7 @@ class MainActivity : ComponentActivity() {
             val device = pairedDevices.firstOrNull { it.name == "V-LINK" }
 
             device?.let {
-                connectToThread(
+                return connectToThread(
                     RealBluetoothDevice(it),
                     bluetoothAdapter!!,
                     onStatusUpdate,
@@ -209,11 +221,15 @@ class MainActivity : ComponentActivity() {
                     isToggleOn,
                     onDataUpdate,
                     onFetchDataReady)
-            } ?: onError("Device 'V-LINK' not found")
+            } ?: run {
+                onError("No paired device with name V-LINK found")
+            }
 
         } catch (e: Exception) {
             onError("Error while connecting to device: ${e.message}")
         }
+
+        return false
     }
 
     // Connect to the device
@@ -225,7 +241,19 @@ class MainActivity : ComponentActivity() {
         uploadUrl: String,
         isToggleOn: Boolean,
         onDataUpdate: (String) -> Unit,
-        onFetchDataReady: () -> Unit) {
+        onFetchDataReady: () -> Unit
+    ): Boolean {
+
+        try {
+            if (connectThread != null) {
+                connectThread?.disconnect()
+                connectThread = null
+                return false
+            }
+        } catch (e: Exception) {
+            onError("Error while disconnecting from device: ${e.message}")
+            return false
+        }
 
         connectThread = ConnectThread(
             device,
@@ -236,16 +264,17 @@ class MainActivity : ComponentActivity() {
             isToggleOn,
             this@MainActivity,
             onDataUpdate,
-            onFetchDataReady
+            onFetchDataReady,
+            isConnected
         )
         connectThread?.start()
-        isConnected = true // Update the connection state
+        return true
     }
 
     private fun disconnectDevice(onStatusUpdate: (String) -> Unit) {
         connectThread?.disconnect() // Call the new disconnect method
         connectThread = null
-        isConnected = false
+        isConnected.value = false
         obdData = ""
         errorMessage = ""
         pairedDevicesMessage = ""
