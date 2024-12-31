@@ -57,11 +57,12 @@ class MockInputStream : InputStream() {
         "07" to { generateRandomHexValue(2) }, // PendingTroubleCodesCommand
         "0A" to { generateRandomHexValue(2) }, // PermanentTroubleCodesCommand
 
-        "01 00" to { "41 00 D8 3B 20 13>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 01 to 20
+        "01 00" to { "41 00 BF 9F EC 11 41 00 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 01 to 20
+        // BMW E46 318i N42 response: 01,03,04,05,06,07,08,09,0C,0D,0E,0F,10,11,12,13,15,16,1C,20,01
         "01 20" to { "41 20 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 21 to 40
-        "01 40" to { "41 40 00 00 00 00>" }, // AvailablePIDsCommand (01 40 00 00 00 00) PIDs from 41 to 60
-        "01 60" to { "41 60 00 00 00 00>" }, // AvailablePIDsCommand (01 60 00 00 00 00) PIDs from 61 to 80
-        "01 80" to { "41 80 00 00 00 00>" }, // AvailablePIDsCommand (01 80 00 00 00 00) PIDs from 81 to A0
+        "01 40" to { "41 40 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 41 to 60
+        "01 60" to { "41 60 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 61 to 80
+        "01 80" to { "41 80 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 81 to A0
 
         "AT SP 0" to { "OK" }, // Set Protocol to Automatic
         "AT SP 3" to { "OK" }, // Set Protocol to ISO 9141-2
