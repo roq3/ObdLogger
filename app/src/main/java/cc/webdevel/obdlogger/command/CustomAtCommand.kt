@@ -103,7 +103,7 @@ class AvailablePIDsCustomCommand(private val range: AvailablePIDsRanges) : ObdCo
     }
 
     private fun parseCustomPIDs(rawValue: String): IntArray {
-        val responses = rawValue.chunked(12).filter { it.startsWith("4100") }
+        val responses = rawValue.chunked(12).filter { it.startsWith("41") }
         val pids = mutableListOf<Int>()
 
         responses.forEach { response ->

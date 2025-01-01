@@ -13,8 +13,8 @@ class OBDStandardsCommand : ObdCommand() {
     override val handler = { it: ObdRawResponse ->
         val cleanedResponse = it.bufferedValue.joinToString("") { byte -> "%02X".format(byte) }
         if (cleanedResponse.length >= 2) {
-            val value = cleanedResponse.substring(2, 4).toInt(16)
-            "OBD Standards: ${getStandardDescription(value)}"
+            val value = cleanedResponse.takeLast(2).toInt(16)
+            getStandardDescription(value)
         } else {
             "Invalid response: $cleanedResponse"
         }

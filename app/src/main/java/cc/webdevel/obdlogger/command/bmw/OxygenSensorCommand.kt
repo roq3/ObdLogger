@@ -6,8 +6,14 @@ import com.github.eltonvs.obd.command.ObdRawResponse
 class OxygenSensorCommand(private val sensor: OxygenSensor) : ObdCommand() {
 
     enum class OxygenSensor(val pid: String) {
-        BANK_1_SENSOR_2("14"),
-        BANK_1_SENSOR_3("15")
+        BANK_1_SENSOR_1("14"),
+        BANK_1_SENSOR_2("15"),
+        BANK_1_SENSOR_3("16"),
+        BANK_1_SENSOR_4("17"),
+        BANK_1_SENSOR_5("18"),
+        BANK_1_SENSOR_6("19"),
+        BANK_1_SENSOR_7("1A"),
+        BANK_1_SENSOR_8("1B"),
     }
 
     override val tag = "OXYGEN_SENSOR_COMMAND"

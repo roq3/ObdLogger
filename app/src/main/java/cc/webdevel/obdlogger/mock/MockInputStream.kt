@@ -57,12 +57,21 @@ class MockInputStream : InputStream() {
         "07" to { generateRandomHexValue(2) }, // PendingTroubleCodesCommand
         "0A" to { generateRandomHexValue(2) }, // PermanentTroubleCodesCommand
 
-        "01 00" to { "41 00 BF 9F EC 11 41 00 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 01 to 20
-        // BMW E46 318i N42 response: 01,03,04,05,06,07,08,09,0C,0D,0E,0F,10,11,12,13,15,16,1C,20,01
-        "01 20" to { "41 20 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 21 to 40
-        "01 40" to { "41 40 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 41 to 60
-        "01 60" to { "41 60 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 61 to 80
-        "01 80" to { "41 80 80 00 00 00>" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 81 to A0
+//        "01 00" to { "41 00 BF 9F EC 11 41 00 80 00 00 00>" }, // AvailablePIDsCommand PIDs from 01 to 20
+        // BMW E46 318i N42 response: 01,03,04,05,06,07,08,09,0C,0D,0E,0F,10,11,12,13,15,16,1C,20,01 FOR AT SP 3
+
+        "01 00" to { "41 00 BF 9F EC 11" }, // AvailablePIDsCommand PIDs from 01 to 20
+        // BMW E46 318i N42 response: 01,03,04,05,06,07,08,09,0C,0D,0E,0F,10,11,12,13,15,16,1C,20 FOR AT SP 5
+
+//        "01 20" to { "41 20 80 00 11 00>" }, // AvailablePIDsCommand PIDs from 21 to 40 FOR AT SP 3
+        // BMW E46 318i N42 response: 21, 34, 38 FOR AT SP 3,
+
+        "01 20" to { "41 1C 06" }, // AvailablePIDsCommand  PIDs from 21 to 40 FOR AT SP 5
+        // BMW E46 318i N42 response: 2A, 30, 34, 35, 36, 3E, 3F FOR AT SP 5
+
+        "01 40" to { "" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 41 to 60
+        "01 60" to { "" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 61 to 80
+        "01 80" to { "" }, // AvailablePIDsCommand (01 20 80 00 00 00) PIDs from 81 to A0
 
         "AT SP 0" to { "OK" }, // Set Protocol to Automatic
         "AT SP 3" to { "OK" }, // Set Protocol to ISO 9141-2
@@ -92,15 +101,32 @@ class MockInputStream : InputStream() {
         "AT D" to { "OK" }, // Turn off the headers and set the protocol to automatic
         "AT S0" to { "OK" }, // Turn off spaces
 
-        // BMW E46 318i N42 OBD-II Codes List
+        // BMW E46 318i N42 OBD-II Codes List (01,03,04,05,06,07,08,09,0C,0D,0E,0F,10,11,12,13,15,16,1C,20,01)
         "01 03" to { "41 03 01 02>" }, // Bank 1: 01, Bank 2: 02
         "01 12" to { "41 12 01>" }, // SecondaryAirStatusCommand
-        "01 1C" to { "41 1C 01>" }, // OBDStandardsCommand
+
+        "01 13" to { "41 13 17>" }, // Response for OxygenSensorsPresentCommand
+        // BMW E46 318i N42 response:
+        // Bank 1 - Sensor 1 14
+        // Bank 1 - Sensor 2 15
+        // Bank 1 - Sensor 4 17
+        // Bank 2 - Sensor 1 18
+        "01 14" to { "41 14 1234>" }, // Response for Bank 1, Sensor 1:Oxygen sensor & Short Term Fuel Trim
+        "01 15" to { "41 15 7F FF>" }, // Response for Bank 1, Sensor 2:Oxygen sensor & Short Term Fuel Trim
+        "01 16" to { "41 16 13 FF>" }, // Response for Bank 1, Sensor 3:Oxygen sensor & Short Term Fuel Trim
+        "01 1C" to { "41 00 BF 9F EC 11>" }, // OBDStandardsCommand
+
         "01 24" to { "41 24 1234>" }, // Response for O2 S1 Equiv. Ratio and/or Current
         "01 25" to { "41 25 5678>" }, // Response for O2 S5 Equiv. Ratio and/or Current
-        "01 14" to { "41 14 1234>" }, // Response for Bank 1, Sensor 2:Oxygen sensor & Short Term Fuel Trim
-        "01 15" to { "41 15 5678>" }, // Response for Bank 1, Sensor 3:Oxygen sensor & Short Term Fuel Trim
-        "01 13" to { "41 13 01>" }, // Response for OxygenSensorsPresentCommand
+
+        // Extra responses for 21-40
+        "01 2A" to { "41 2A 1234>" }, // Oxygen Sensor 7 AB: Air-Fuel Equivalence Ratio (lambda,λ) CD: Voltage
+        "01 30" to { "41 30 5678>" }, // Warm-ups since codes cleared
+        "01 34" to { "41 34 9ABC>" }, // Oxygen Sensor 1 AB: Air-Fuel Equivalence Ratio (lambda,λ) CD: Current
+        "01 35" to { "41 35 DEF0>" }, // Oxygen Sensor 2 AB: Air-Fuel Equivalence Ratio (lambda,λ) CD: Current
+        "01 36" to { "41 36 1357>" }, // Oxygen Sensor 3 AB: Air-Fuel Equivalence Ratio (lambda,λ) CD: Current
+        "01 3E" to { "41 3E 2468>" }, // Catalyst Temperature: Bank 1, Sensor 2
+        "01 3F" to { "41 3F 1234>" }, // Catalyst Temperature: Bank 2, Sensor 2
     )
 
 //        "01 0D" to "41 0D 001E>", // Response for SpeedCommand (30 Km/h)

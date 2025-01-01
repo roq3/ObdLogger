@@ -215,7 +215,14 @@ class ConnectThread(
 
                 try {
 
-                    val result = runCommandSafely { obdConnection.run(it) }
+                    val result = runCommandSafely {
+                        obdConnection.run(
+                            it,
+                            true,
+                            1,
+                            0
+                        )
+                    }
 
                     val commandName = result.command.name
                     val commandSend = result.command.rawCommand
@@ -264,6 +271,8 @@ class ConnectThread(
         fetchDataJob = CoroutineScope(Dispatchers.IO).launch {
             try {
                 while (isRunning) {
+                    val startTime = System.currentTimeMillis()
+
                     onStatusUpdate("Fetching data...")
                     val commandResults = mutableMapOf<String, MutableMap<String, String>>()
                     val obdDataMessage = StringBuilder()
@@ -285,7 +294,14 @@ class ConnectThread(
                                             "Date", "Latitude", "Longitude" -> value().toString()
                                             else -> {
                                                 when (val commandResult = value()) {
-                                                    is ObdCommand -> runCommandSafely { obdConnection.run(commandResult).formattedValue }
+                                                    is ObdCommand -> runCommandSafely {
+                                                        obdConnection.run(
+                                                            commandResult,
+                                                            true,
+                                                            1,
+                                                            0
+                                                        ).formattedValue
+                                                    }
                                                     else -> commandResult.toString()
                                                 }
                                             }
@@ -301,12 +317,28 @@ class ConnectThread(
                         val results = deferredResults.map { it.await() }
                         results.forEachIndexed { index, (key, commandVal) ->
 
+                            var lineKey = key
+
+                            if (
+                                lineKey in listOf(
+                                    "Short term - Bank1",
+                                    "Engine RPM",
+                                    "Intake air temperature",
+                                    "Oxygen sensors present",
+                                    "OBD standard"
+                                )
+                            ) {
+                                lineKey = "\n$lineKey"
+                            }
+
+                            var line = "$lineKey: $commandVal"
+
                             // if not last command, add a comma
                             if(index < results.size - 1) {
-                                obdDataMessage.append("$key: $commandVal,\n")
-                            } else {
-                                obdDataMessage.append("$key: $commandVal")
+                                line = "$lineKey: $commandVal,\n"
                             }
+
+                            obdDataMessage.append(line)
 
                             commandResults[groupKey] = commandResults[groupKey] ?: mutableMapOf()
                             commandResults[groupKey]?.set(key!!, commandVal)
@@ -318,7 +350,11 @@ class ConnectThread(
                     }
                     onDataUpdate(obdDataMessage.toString())
 
-                    delay(2000)
+                    val elapsedTime = System.currentTimeMillis() - startTime
+                    val delayTime = 1000 - elapsedTime
+                    if (delayTime > 0) {
+                        delay(delayTime)
+                    }
                 }
             } catch (e: IOException) {
                 onError("Connection lost: ${e.message}")
@@ -339,10 +375,11 @@ class ConnectThread(
             SetDefaultsCommand(), // AT D
             SetEchoCommand(Switcher.OFF), // AT E0
             SetHeadersCommand(Switcher.OFF), // AT H0
-            SelectProtocolCommand(ObdProtocols.ISO_9141_2), // AT SP 3
+            SelectProtocolCommand(ObdProtocols.ISO_14230_4_KWP_FAST), // AT SP 5
 
             // PIDs commands
             AvailablePIDsCustomCommand(AvailablePIDsCustomCommand.AvailablePIDsRanges.PIDS_01_TO_20), // 01 00
+            AvailablePIDsCustomCommand(AvailablePIDsCustomCommand.AvailablePIDsRanges.PIDS_21_TO_40), // 01 20
         )
 
     // List of commands to be executed
